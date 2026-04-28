@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/terminal_bg"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/terminal_top_bar"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingBottom="10dp"
+        android:paddingLeft="12dp"
+        android:paddingRight="12dp"
+        android:paddingTop="10dp">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/terminal_screen_title"
+                android:textColor="@color/text_primary"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/sessionValue"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textColor="@color/text_muted"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/statusValue"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:textColor="@color/terminal_text"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/backButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/button_secondary"
+            android:text="@string/action_back"
+            android:textColor="@color/button_text_light" />
+
+        <Button
+            android:id="@+id/disconnectButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/button_secondary"
+            android:text="@string/action_disconnect"
+            android:textColor="@color/button_text_light" />
+    </LinearLayout>
+
+    <com.termux.view.SshTerminalView
+        android:id="@+id/terminalOutput"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:scrollbars="vertical|horizontal" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/terminal_bottom_bar"
+        android:orientation="vertical"
+        android:paddingBottom="8dp"
+        android:paddingLeft="12dp"
+        android:paddingRight="12dp"
+        android:paddingTop="8dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:weightSum="6">
+
+            <Button
+                android:id="@+id/keyboardButton"
+                style="@style/TerminalKeyButton"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/button_secondary"
+                android:text="@string/action_keyboard"
+                android:textColor="@color/button_text_light" />
+
+            <Button
+                android:id="@+id/escButton"
+                style="@style/TerminalKeyButton"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/button_secondary"
+                android:text="@string/action_esc"
+                android:textColor="@color/button_text_light" />
+
+            <Button
+                android:id="@+id/tabButton"
+                style="@style/TerminalKeyButton"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/button_secondary"
+                android:text="@string/action_tab"
+                android:textColor="@color/button_text_light" />
+
+            <Button
+                android:id="@+id/copyButton"
+                style="@style/TerminalKeyButton"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/button_secondary"
+                android:text="@string/action_copy"
+                android:textColor="@color/button_text_light" />
+
+            <Button
+                android:id="@+id/pasteButton"
+                style="@style/TerminalKeyButton"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/button_secondary"
+                android:text="@string/action_paste"
+                android:textColor="@color/button_text_light" />
+
+            <Button
+                android:id="@+id/ctrlButton"
+                style="@style/TerminalKeyButton"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:background="@drawable/button_secondary"
+                android:text="@string/action_ctrl"
+                android:textColor="@color/button_text_light" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:weightSum="7">
+
+            <Button
+                android:id="@+id/altButton"
+                style="@style/TerminalKeyButton"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/button_secondary"
+                android:text="@string/action_alt"
+                android:textColor="@color/button_text_light" />
+
+            <Button
+                android:id="@+id/pageUpButton"
+                style="@style/TerminalKeyButton"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/button_secondary"
+                android:text="@string/action_page_up"
+                android:textColor="@color/button_text_light" />
+
+            <Button
+                android:id="@+id/leftButton"
+                style="@style/TerminalKeyButton"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/button_secondary"
+                android:text="@string/action_left"
+                android:textColor="@color/button_text_light" />
+
+            <Button
+                android:id="@+id/downButton"
+                style="@style/TerminalKeyButton"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/button_secondary"
+                android:text="@string/action_down"
+                android:textColor="@color/button_text_light" />
+
+            <Button
+                android:id="@+id/upButton"
+                style="@style/TerminalKeyButton"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/button_secondary"
+                android:text="@string/action_up"
+                android:textColor="@color/button_text_light" />
+
+            <Button
+                android:id="@+id/rightButton"
+                style="@style/TerminalKeyButton"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:background="@drawable/button_secondary"
+                android:text="@string/action_right"
+                android:textColor="@color/button_text_light" />
+
+            <Button
+                android:id="@+id/pageDownButton"
+                style="@style/TerminalKeyButton"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/button_secondary"
+                android:text="@string/action_page_down"
+                android:textColor="@color/button_text_light" />
+        </LinearLayout>
+    </LinearLayout>
+
+</LinearLayout>

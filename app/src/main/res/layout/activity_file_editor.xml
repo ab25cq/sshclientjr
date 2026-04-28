@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/terminal_bg"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/terminal_top_bar"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="10dp">
+
+        <TextView
+            android:id="@+id/editorPathValue"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:singleLine="true"
+            android:textColor="@color/text_primary"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/saveButton"
+            style="@style/TerminalKeyButton"
+            android:background="@drawable/button_primary"
+            android:text="@string/action_save"
+            android:textColor="@color/button_text" />
+
+        <Button
+            android:id="@+id/editorCloseButton"
+            style="@style/TerminalKeyButton"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/button_secondary"
+            android:text="@string/action_back"
+            android:textColor="@color/button_text_light" />
+    </LinearLayout>
+
+    <EditText
+        android:id="@+id/editorInput"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="@color/terminal_bg"
+        android:gravity="top|start"
+        android:imeOptions="flagNoExtractUi"
+        android:inputType="textMultiLine|textNoSuggestions"
+        android:padding="12dp"
+        android:scrollbars="vertical|horizontal"
+        android:textColor="@color/text_primary"
+        android:textColorHint="@color/text_hint"
+        android:textSize="14sp"
+        android:typeface="monospace" />
+</LinearLayout>

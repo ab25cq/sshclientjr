@@ -1,0 +1,101 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="com.sshclientjr"
+4    android:versionCode="2"
+5    android:versionName="1.2" >
+6
+7    <uses-sdk
+8        android:minSdkVersion="24"
+9        android:targetSdkVersion="35" />
+10
+11    <uses-permission android:name="android.permission.INTERNET" />
+11-->/home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:4:5-67
+11-->/home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:4:22-64
+12    <uses-permission
+12-->/home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:5:5-7:38
+13        android:name="android.permission.READ_EXTERNAL_STORAGE"
+13-->/home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:6:9-64
+14        android:maxSdkVersion="32" />
+14-->/home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:7:9-35
+15    <uses-permission
+15-->/home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:8:5-10:38
+16        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+16-->/home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:9:9-65
+17        android:maxSdkVersion="28" />
+17-->/home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:10:9-35
+18
+19    <application
+19-->/home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:12:5-47:19
+20        android:allowBackup="true"
+20-->/home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:13:9-35
+21        android:extractNativeLibs="false"
+22        android:icon="@drawable/ic_launcher"
+22-->/home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:14:9-45
+23        android:label="@string/app_name"
+23-->/home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:15:9-41
+24        android:roundIcon="@drawable/ic_launcher"
+24-->/home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:16:9-50
+25        android:supportsRtl="true"
+25-->/home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:17:9-35
+26        android:theme="@style/Theme.SshClientJr" >
+26-->/home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:18:9-49
+27        <activity
+27-->/home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:19:9-23:70
+28            android:name="com.sshclientjr.TerminalActivity"
+28-->/home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:20:13-45
+29            android:exported="false"
+29-->/home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:21:13-37
+30            android:theme="@style/Theme.SshClientJr.Terminal"
+30-->/home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:22:13-62
+31            android:windowSoftInputMode="adjustResize|stateHidden" />
+31-->/home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:23:13-67
+32        <activity
+32-->/home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:24:9-27:70
+33            android:name="com.sshclientjr.FileEditorActivity"
+33-->/home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:25:13-47
+34            android:exported="false"
+34-->/home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:26:13-37
+35            android:windowSoftInputMode="adjustResize|stateHidden" />
+35-->/home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:27:13-67
+36        <activity
+36-->/home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:28:9-31:70
+37            android:name="com.sshclientjr.FilerActivity"
+37-->/home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:29:13-42
+38            android:exported="false"
+38-->/home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:30:13-37
+39            android:windowSoftInputMode="adjustResize|stateHidden" />
+39-->/home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:31:13-67
+40
+41        <provider
+41-->/home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:32:9-36:50
+42            android:name="com.sshclientjr.LocalFileContentProvider"
+42-->/home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:33:13-53
+43            android:authorities="com.sshclientjr.localfile"
+43-->/home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:34:13-60
+44            android:exported="false"
+44-->/home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:35:13-37
+45            android:grantUriPermissions="true" />
+45-->/home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:36:13-47
+46
+47        <activity
+47-->/home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:37:9-46:20
+48            android:name="com.sshclientjr.MainActivity"
+48-->/home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:38:13-41
+49            android:exported="true"
+49-->/home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:39:13-36
+50            android:windowSoftInputMode="adjustResize|stateHidden" >
+50-->/home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:40:13-67
+51            <intent-filter>
+51-->/home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:41:13-45:29
+52                <action android:name="android.intent.action.MAIN" />
+52-->/home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:42:17-69
+52-->/home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:42:25-66
+53
+54                <category android:name="android.intent.category.LAUNCHER" />
+54-->/home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:44:17-77
+54-->/home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:44:27-74
+55            </intent-filter>
+56        </activity>
+57    </application>
+58
+59</manifest>

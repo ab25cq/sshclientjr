@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>sshclientjr Privacy Policy</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f7faf8;
+      --text: #15211b;
+      --muted: #52645c;
+      --line: #d7e2dc;
+      --panel: #ffffff;
+      --accent: #168754;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0b1210;
+        --text: #eef8f2;
+        --muted: #a9b9b1;
+        --line: #294039;
+        --panel: #111c18;
+        --accent: #51d28f;
+      }
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: sans-serif;
+      line-height: 1.7;
+    }
+
+    main {
+      max-width: 880px;
+      margin: 0 auto;
+      padding: 32px 18px 56px;
+    }
+
+    header {
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 28px;
+      padding-bottom: 18px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      line-height: 1.25;
+    }
+
+    h2 {
+      border-top: 1px solid var(--line);
+      margin-top: 28px;
+      padding-top: 22px;
+      font-size: 20px;
+    }
+
+    p, li {
+      font-size: 15px;
+    }
+
+    .meta {
+      color: var(--muted);
+      margin: 0;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    code {
+      background: color-mix(in srgb, var(--accent) 12%, transparent);
+      border-radius: 4px;
+      padding: 1px 5px;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>sshclientjr プライバシーポリシー</h1>
+      <p class="meta">最終更新日: 2026年4月29日</p>
+    </header>
+
+    <section class="panel">
+      <p>
+        sshclientjr は、Android 端末からユーザーが指定した SSH/SFTP サーバーへ接続するためのアプリです。
+        本アプリは、開発者が管理する外部サーバーへ個人情報、接続情報、ファイル内容、端末情報を送信しません。
+      </p>
+    </section>
+
+    <h2>収集する情報</h2>
+    <p>
+      本アプリは、開発者による分析、広告、トラッキング、利用統計収集を行いません。
+      ただし、アプリの機能を提供するため、ユーザーが入力または操作した次の情報を端末内で扱います。
+    </p>
+    <ul>
+      <li>SSH/SFTP 接続先のホスト名または IP アドレス、ポート番号、ユーザー名</li>
+      <li>パスワード、秘密鍵、秘密鍵パスフレーズ</li>
+      <li>接続履歴</li>
+      <li>ターミナルに入力した文字列およびサーバーから受信した表示内容</li>
+      <li>ファイラーモードで表示、ダウンロード、編集、アップロードするファイルおよびディレクトリ情報</li>
+      <li>クリップボードへコピーまたは貼り付けする文字列</li>
+    </ul>
+
+    <h2>情報の利用目的</h2>
+    <p>本アプリは、上記の情報を次の目的でのみ利用します。</p>
+    <ul>
+      <li>ユーザーが指定した SSH/SFTP サーバーへ接続するため</li>
+      <li>ターミナル操作、ファイル一覧表示、ファイル転送、ファイル編集を行うため</li>
+      <li>次回起動時に接続情報や接続履歴を復元するため</li>
+      <li>Android の「開く」機能にローカルファイルを渡すため</li>
+    </ul>
+
+    <h2>端末内への保存</h2>
+    <p>
+      ホスト名、ポート番号、ユーザー名、パスワード、秘密鍵、秘密鍵パスフレーズ、接続履歴は、
+      アプリの設定データとして端末内に保存されます。
+      これらの情報は開発者へ送信されません。
+    </p>
+    <p>
+      ファイラーモードでサーバー側ファイルを編集する場合、編集のために一時的なローカルコピーを端末内に作成することがあります。
+      ダウンロード操作を行ったファイルは、ユーザーが選択したローカルディレクトリに保存されます。
+    </p>
+
+    <h2>外部送信と第三者提供</h2>
+    <p>
+      本アプリは、ユーザーが指定した SSH/SFTP サーバーとの通信以外に、開発者または第三者が管理するサーバーへデータを送信しません。
+      広告 SDK、解析 SDK、クラッシュレポート SDK は使用していません。
+      本アプリがユーザーの情報を販売、共有、第三者提供することはありません。
+    </p>
+
+    <h2>ネットワーク通信</h2>
+    <p>
+      本アプリは Android の <code>INTERNET</code> 権限を使用します。
+      この権限は、ユーザーが入力した接続先へ SSH/SFTP 接続するために必要です。
+      接続先サーバーに送信される内容や保存されるログは、接続先サーバーの設定および管理者に依存します。
+    </p>
+
+    <h2>ファイルアクセス</h2>
+    <p>
+      ファイラーモードでは、ローカルファイルの表示、Android の「開く」機能への受け渡し、サーバーからのダウンロードにファイルアクセスを使用します。
+      Android のバージョンによっては、Download フォルダ等へアクセスするためにストレージ権限が必要になる場合があります。
+    </p>
+
+    <h2>セキュリティ</h2>
+    <p>
+      本アプリは、SSH/SFTP 接続により通信します。
+      接続情報は端末内に保存されますが、端末のロック、バックアップ、他アプリからのアクセス制御などは Android OS と端末設定に依存します。
+      共有端末では、パスワードや秘密鍵を保存しない運用を推奨します。
+    </p>
+
+    <h2>データの削除</h2>
+    <p>
+      本アプリに保存された接続情報、接続履歴、一時ファイル等は、Android のアプリ情報画面から本アプリのストレージを削除するか、
+      本アプリをアンインストールすることで削除できます。
+      ダウンロード済みファイルなど、ユーザーがローカルストレージに保存したファイルは、ユーザー自身で削除してください。
+    </p>
+
+    <h2>子どものプライバシー</h2>
+    <p>
+      本アプリは、13歳未満の子どもを対象としていません。
+      本アプリは、子どもから個人情報を意図的に収集しません。
+    </p>
+
+    <h2>ポリシーの変更</h2>
+    <p>
+      本プライバシーポリシーは、アプリの機能変更や法令・プラットフォーム要件の変更に応じて更新される場合があります。
+      重要な変更がある場合は、本ページの内容を更新します。
+    </p>
+
+    <h2>お問い合わせ</h2>
+    <p>
+      本プライバシーポリシーに関するお問い合わせは、Google Play ストア掲載のデベロッパー連絡先からご連絡ください。
+    </p>
+  </main>
+</body>
+</html>

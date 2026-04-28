@@ -1,0 +1,4 @@
+#Tue Apr 28 01:42:18 JST 2026
+base.0=/home/ab25cq/sshclientjr/app/build/intermediates/dex/release/mergeDexRelease/classes.dex
+path.0=classes.dex
+renamed.0=classes.dex
