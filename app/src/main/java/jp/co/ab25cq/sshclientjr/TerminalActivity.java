@@ -12,7 +12,6 @@ import android.text.TextUtils;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.TextView;
@@ -38,6 +37,7 @@ public final class TerminalActivity extends Activity {
     private Button pasteButton;
     private Button ctrlButton;
     private Button altButton;
+    private Button ctrlDButton;
     private Button pageUpButton;
     private Button leftButton;
     private Button downButton;
@@ -80,13 +80,11 @@ public final class TerminalActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        getWindow().setFlags(
-                WindowManager.LayoutParams.FLAG_FULLSCREEN,
-                WindowManager.LayoutParams.FLAG_FULLSCREEN
-        );
         setContentView(R.layout.activity_terminal);
+        KeyboardInsetHelper.keepBelowStatusBar(this, findViewById(R.id.terminalTopBar));
+        KeyboardInsetHelper.keepAboveKeyboard(this, findViewById(R.id.terminalKeyBar));
 
-        sshSession = new SshTerminalSession(new SshTerminalSession.Client() {
+        sshSession = new SshTerminalSession(this, new SshTerminalSession.Client() {
             @Override
             public void onConnected() {
                 runOnUiThread(() -> {
@@ -133,7 +131,7 @@ public final class TerminalActivity extends Activity {
                 ClipboardManager manager = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
                 if (manager != null) {
                     manager.setPrimaryClip(ClipData.newPlainText("sshclientjr", text));
-                    Toast.makeText(TerminalActivity.this, "コピーしました。", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(TerminalActivity.this, R.string.toast_copied, Toast.LENGTH_SHORT).show();
                 }
             }
 
@@ -173,6 +171,7 @@ public final class TerminalActivity extends Activity {
         pasteButton = findViewById(R.id.pasteButton);
         ctrlButton = findViewById(R.id.ctrlButton);
         altButton = findViewById(R.id.altButton);
+        ctrlDButton = findViewById(R.id.ctrlDButton);
         pageUpButton = findViewById(R.id.pageUpButton);
         leftButton = findViewById(R.id.leftButton);
         downButton = findViewById(R.id.downButton);
@@ -197,6 +196,7 @@ public final class TerminalActivity extends Activity {
         pasteButton.setOnClickListener(view -> pasteClipboard());
         ctrlButton.setOnClickListener(view -> toggleCtrlModifier());
         altButton.setOnClickListener(view -> toggleAltModifier());
+        ctrlDButton.setOnClickListener(view -> sshSession.sendCtrlD());
         pageUpButton.setOnClickListener(view -> sendKey(KeyEvent.KEYCODE_PAGE_UP));
         setRepeatingKeyListener(leftButton, KeyEvent.KEYCODE_DPAD_LEFT);
         setRepeatingKeyListener(downButton, KeyEvent.KEYCODE_DPAD_DOWN);
@@ -221,7 +221,7 @@ public final class TerminalActivity extends Activity {
 
         if (TextUtils.isEmpty(host) || TextUtils.isEmpty(username) ||
                 (TextUtils.isEmpty(password) && TextUtils.isEmpty(privateKey))) {
-            Toast.makeText(this, "接続情報が不足しています。", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.toast_missing_connection_info, Toast.LENGTH_SHORT).show();
             finish();
             return;
         }
@@ -239,6 +239,7 @@ public final class TerminalActivity extends Activity {
         pasteButton.setEnabled(connected);
         ctrlButton.setEnabled(connected);
         altButton.setEnabled(connected);
+        ctrlDButton.setEnabled(connected);
         pageUpButton.setEnabled(connected);
         leftButton.setEnabled(connected);
         downButton.setEnabled(connected);
@@ -317,26 +318,26 @@ public final class TerminalActivity extends Activity {
     private void copySelection() {
         String selectedText = terminalView.getSelectedText();
         if (TextUtils.isEmpty(selectedText)) {
-            Toast.makeText(this, "長押しして範囲選択してください。", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.toast_select_range, Toast.LENGTH_SHORT).show();
             return;
         }
         ClipboardManager manager = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
         if (manager != null) {
             manager.setPrimaryClip(ClipData.newPlainText("sshclientjr", selectedText));
             terminalView.clearSelection();
-            Toast.makeText(this, "選択範囲をコピーしました。", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.toast_selection_copied, Toast.LENGTH_SHORT).show();
         }
     }
 
     private void pasteClipboard() {
         ClipboardManager manager = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
         if (manager == null || manager.getPrimaryClip() == null || manager.getPrimaryClip().getItemCount() == 0) {
-            Toast.makeText(this, "貼り付ける文字列がありません。", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.toast_no_clipboard_text, Toast.LENGTH_SHORT).show();
             return;
         }
         CharSequence text = manager.getPrimaryClip().getItemAt(0).coerceToText(this);
         if (text == null) {
-            Toast.makeText(this, "貼り付ける文字列がありません。", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.toast_no_clipboard_text, Toast.LENGTH_SHORT).show();
             return;
         }
         terminalView.pasteText(text.toString());

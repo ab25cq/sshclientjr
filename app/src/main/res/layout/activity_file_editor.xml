@@ -3,9 +3,11 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/terminal_bg"
+    android:fitsSystemWindows="true"
     android:orientation="vertical">
 
     <LinearLayout
+        android:id="@+id/editorTopBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@color/terminal_top_bar"
@@ -24,8 +26,17 @@
             android:textStyle="bold" />
 
         <Button
+            android:id="@+id/searchButton"
+            style="@style/TerminalKeyButton"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/button_secondary"
+            android:text="@string/action_search"
+            android:textColor="@color/button_text_light" />
+
+        <Button
             android:id="@+id/saveButton"
             style="@style/TerminalKeyButton"
+            android:layout_marginStart="8dp"
             android:background="@drawable/button_primary"
             android:text="@string/action_save"
             android:textColor="@color/button_text" />
@@ -48,10 +59,168 @@
         android:gravity="top|start"
         android:imeOptions="flagNoExtractUi"
         android:inputType="textMultiLine|textNoSuggestions"
+        android:longClickable="true"
         android:padding="12dp"
         android:scrollbars="vertical|horizontal"
         android:textColor="@color/text_primary"
         android:textColorHint="@color/text_hint"
         android:textSize="14sp"
         android:typeface="monospace" />
+
+    <LinearLayout
+        android:id="@+id/editorKeyBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/terminal_bottom_bar"
+        android:orientation="vertical"
+        android:paddingBottom="8dp"
+        android:paddingLeft="12dp"
+        android:paddingRight="12dp"
+        android:paddingTop="8dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:weightSum="6">
+
+            <Button
+                android:id="@+id/editorKeyboardButton"
+                style="@style/TerminalKeyButton"
+                android:layout_width="0dp"
+                android:layout_marginEnd="6dp"
+                android:layout_weight="1"
+                android:background="@drawable/button_secondary"
+                android:text="@string/action_keyboard"
+                android:textColor="@color/button_text_light" />
+
+            <Button
+                android:id="@+id/editorEscButton"
+                style="@style/TerminalKeyButton"
+                android:layout_width="0dp"
+                android:layout_marginEnd="6dp"
+                android:layout_weight="1"
+                android:background="@drawable/button_secondary"
+                android:text="@string/action_esc"
+                android:textColor="@color/button_text_light" />
+
+            <Button
+                android:id="@+id/editorTabButton"
+                style="@style/TerminalKeyButton"
+                android:layout_width="0dp"
+                android:layout_marginEnd="6dp"
+                android:layout_weight="1"
+                android:background="@drawable/button_secondary"
+                android:text="@string/action_tab"
+                android:textColor="@color/button_text_light" />
+
+            <Button
+                android:id="@+id/editorCopyButton"
+                style="@style/TerminalKeyButton"
+                android:layout_width="0dp"
+                android:layout_marginEnd="6dp"
+                android:layout_weight="1"
+                android:background="@drawable/button_secondary"
+                android:text="@string/action_copy"
+                android:textColor="@color/button_text_light" />
+
+            <Button
+                android:id="@+id/editorPasteButton"
+                style="@style/TerminalKeyButton"
+                android:layout_width="0dp"
+                android:layout_marginEnd="6dp"
+                android:layout_weight="1"
+                android:background="@drawable/button_secondary"
+                android:text="@string/action_paste"
+                android:textColor="@color/button_text_light" />
+
+            <Button
+                android:id="@+id/editorCtrlButton"
+                style="@style/TerminalKeyButton"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:background="@drawable/button_secondary"
+                android:text="@string/action_ctrl"
+                android:textColor="@color/button_text_light" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:weightSum="7">
+
+            <Button
+                android:id="@+id/editorAltButton"
+                style="@style/TerminalKeyButton"
+                android:layout_width="0dp"
+                android:layout_marginEnd="6dp"
+                android:layout_weight="1"
+                android:background="@drawable/button_secondary"
+                android:text="@string/action_alt"
+                android:textColor="@color/button_text_light" />
+
+            <Button
+                android:id="@+id/editorPageUpButton"
+                style="@style/TerminalKeyButton"
+                android:layout_width="0dp"
+                android:layout_marginEnd="6dp"
+                android:layout_weight="1"
+                android:background="@drawable/button_secondary"
+                android:text="@string/action_page_up"
+                android:textColor="@color/button_text_light" />
+
+            <Button
+                android:id="@+id/editorLeftButton"
+                style="@style/TerminalKeyButton"
+                android:layout_width="0dp"
+                android:layout_marginEnd="6dp"
+                android:layout_weight="1"
+                android:background="@drawable/button_secondary"
+                android:text="@string/action_left"
+                android:textColor="@color/button_text_light" />
+
+            <Button
+                android:id="@+id/editorDownButton"
+                style="@style/TerminalKeyButton"
+                android:layout_width="0dp"
+                android:layout_marginEnd="6dp"
+                android:layout_weight="1"
+                android:background="@drawable/button_secondary"
+                android:text="@string/action_down"
+                android:textColor="@color/button_text_light" />
+
+            <Button
+                android:id="@+id/editorUpButton"
+                style="@style/TerminalKeyButton"
+                android:layout_width="0dp"
+                android:layout_marginEnd="6dp"
+                android:layout_weight="1"
+                android:background="@drawable/button_secondary"
+                android:text="@string/action_up"
+                android:textColor="@color/button_text_light" />
+
+            <Button
+                android:id="@+id/editorRightButton"
+                style="@style/TerminalKeyButton"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:background="@drawable/button_secondary"
+                android:text="@string/action_right"
+                android:textColor="@color/button_text_light" />
+
+            <Button
+                android:id="@+id/editorPageDownButton"
+                style="@style/TerminalKeyButton"
+                android:layout_width="0dp"
+                android:layout_marginStart="6dp"
+                android:layout_weight="1"
+                android:background="@drawable/button_secondary"
+                android:text="@string/action_page_down"
+                android:textColor="@color/button_text_light" />
+        </LinearLayout>
+    </LinearLayout>
 </LinearLayout>

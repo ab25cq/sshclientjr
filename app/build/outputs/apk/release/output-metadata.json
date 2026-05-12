@@ -4,15 +4,15 @@
     "type": "APK",
     "kind": "Directory"
   },
-  "applicationId": "jp.co.ab25cq.sshclientjr",
+  "applicationId": "com.sshclientjr",
   "variantName": "release",
   "elements": [
     {
       "type": "SINGLE",
       "filters": [],
       "attributes": [],
-      "versionCode": 1,
-      "versionName": "1.0",
+      "versionCode": 34,
+      "versionName": "34",
       "outputFile": "sshclientjr.apk"
     }
   ],

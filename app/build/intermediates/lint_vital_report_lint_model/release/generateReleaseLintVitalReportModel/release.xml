@@ -1,6 +1,6 @@
 <variant
     name="release"
-    package="jp.co.ab25cq.sshclientjr"
+    package="com.sshclientjr"
     minSdkVersion="24"
     targetSdkVersion="35"
     mergedManifest="build/intermediates/merged_manifest/release/processReleaseMainManifest/AndroidManifest.xml"
@@ -23,7 +23,7 @@
   <artifact
       classOutputs="build/intermediates/javac/release/compileReleaseJavaWithJavac/classes:build/intermediates/compile_and_runtime_not_namespaced_r_class_jar/release/processReleaseResources/R.jar"
       type="MAIN"
-      applicationId="jp.co.ab25cq.sshclientjr"
+      applicationId="com.sshclientjr"
       generatedSourceFolders="build/generated/ap_generated_sources/release/out"
       generatedResourceFolders="build/generated/res/resValues/release"
       desugaredMethodsFiles="/home/ab25cq/.gradle/caches/transforms-4/3b7b24be3806cc46ba880e60225060f6/transformed/D8BackportedDesugaredMethods.txt">

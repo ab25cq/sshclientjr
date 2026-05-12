@@ -1,9 +1,9 @@
 -- Merging decision tree log ---
 manifest
-ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:2:1-49:12
-INJECTED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:2:1-49:12
-INJECTED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:2:1-49:12
-INJECTED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:2:1-49:12
+ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:2:1-43:12
+INJECTED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:2:1-43:12
+INJECTED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:2:1-43:12
+INJECTED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:2:1-43:12
 MERGED from [com.termux.termux-app:terminal-view:0.118.0] /home/ab25cq/.gradle/caches/transforms-4/04b6b2c530edea65b91d9d9af6a57ed1/transformed/terminal-view-0.118.0/AndroidManifest.xml:2:1-9:12
 MERGED from [com.termux.termux-app:terminal-emulator:0.118.0] /home/ab25cq/.gradle/caches/transforms-4/df7445f3cf78349b7610b1a66b848422/transformed/terminal-emulator-0.118.0/AndroidManifest.xml:2:1-9:12
 	package
@@ -18,89 +18,77 @@ uses-permission#android.permission.INTERNET
 ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:4:5-67
 	android:name
 		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:4:22-64
-uses-permission#android.permission.READ_EXTERNAL_STORAGE
-ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:5:5-7:38
-	android:maxSdkVersion
-		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:7:9-35
-	android:name
-		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:6:9-64
-uses-permission#android.permission.WRITE_EXTERNAL_STORAGE
-ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:8:5-10:38
-	android:maxSdkVersion
-		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:10:9-35
-	android:name
-		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:9:9-65
 application
-ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:12:5-47:19
-INJECTED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:12:5-47:19
+ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:6:5-41:19
+INJECTED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:6:5-41:19
 	android:extractNativeLibs
 		INJECTED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml
 	android:supportsRtl
-		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:17:9-35
+		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:11:9-35
 	android:label
-		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:15:9-41
+		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:9:9-41
 	android:roundIcon
-		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:16:9-50
+		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:10:9-50
 	android:icon
-		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:14:9-45
+		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:8:9-45
 	android:allowBackup
-		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:13:9-35
+		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:7:9-35
 	android:theme
-		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:18:9-49
+		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:12:9-49
 activity#com.sshclientjr.TerminalActivity
-ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:19:9-23:70
+ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:13:9-17:70
 	android:windowSoftInputMode
-		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:23:13-67
+		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:17:13-67
 	android:exported
-		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:21:13-37
+		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:15:13-37
 	android:theme
-		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:22:13-62
+		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:16:13-62
 	android:name
-		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:20:13-45
+		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:14:13-45
 activity#com.sshclientjr.FileEditorActivity
-ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:24:9-27:70
+ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:18:9-21:70
 	android:windowSoftInputMode
-		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:27:13-67
+		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:21:13-67
 	android:exported
-		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:26:13-37
+		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:20:13-37
 	android:name
-		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:25:13-47
+		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:19:13-47
 activity#com.sshclientjr.FilerActivity
-ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:28:9-31:70
+ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:22:9-25:70
 	android:windowSoftInputMode
-		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:31:13-67
+		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:25:13-67
 	android:exported
-		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:30:13-37
+		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:24:13-37
 	android:name
-		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:29:13-42
+		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:23:13-42
 provider#com.sshclientjr.LocalFileContentProvider
-ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:32:9-36:50
+ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:26:9-30:50
 	android:grantUriPermissions
-		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:36:13-47
+		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:30:13-47
 	android:authorities
-		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:34:13-60
+		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:28:13-60
 	android:exported
-		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:35:13-37
+		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:29:13-37
 	android:name
-		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:33:13-53
+		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:27:13-53
 activity#com.sshclientjr.MainActivity
-ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:37:9-46:20
+ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:31:9-40:20
 	android:windowSoftInputMode
-		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:40:13-67
+		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:34:13-67
 	android:exported
-		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:39:13-36
+		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:33:13-36
 	android:name
-		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:38:13-41
+		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:32:13-41
 intent-filter#action:name:android.intent.action.MAIN+category:name:android.intent.category.LAUNCHER
-ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:41:13-45:29
+ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:35:13-39:29
 action#android.intent.action.MAIN
-ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:42:17-69
+ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:36:17-69
 	android:name
-		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:42:25-66
+		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:36:25-66
 category#android.intent.category.LAUNCHER
-ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:44:17-77
+ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:38:17-77
 	android:name
-		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:44:27-74
+		ADDED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml:38:27-74
 uses-sdk
 INJECTED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml reason: use-sdk injection requested
 INJECTED from /home/ab25cq/sshclientjr/app/src/main/AndroidManifest.xml

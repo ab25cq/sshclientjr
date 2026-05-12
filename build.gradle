@@ -7,3 +7,10 @@ buildscript {
         classpath "com.android.tools.build:gradle:8.6.0"
     }
 }
+
+ext {
+    compileApi = 35
+    targetApi = 35
+    minApi = 24
+    toolsVersion = "35.0.0"
+}

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="keyboard_inset_manual_visible" type="id" />
+    <item name="keyboard_inset_fallback_height" type="id" />
+    <item name="keyboard_inset_base_padding_left" type="id" />
+    <item name="keyboard_inset_base_padding_top" type="id" />
+    <item name="keyboard_inset_base_padding_right" type="id" />
+    <item name="keyboard_inset_base_padding_bottom" type="id" />
+    <item name="keyboard_inset_base_margin_left" type="id" />
+    <item name="keyboard_inset_base_margin_top" type="id" />
+    <item name="keyboard_inset_base_margin_right" type="id" />
+    <item name="keyboard_inset_base_margin_bottom" type="id" />
+</resources>

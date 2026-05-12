@@ -3,9 +3,11 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/terminal_bg"
+    android:fitsSystemWindows="true"
     android:orientation="vertical">
 
     <LinearLayout
+        android:id="@+id/terminalTopBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@color/terminal_top_bar"
@@ -74,6 +76,7 @@
         android:scrollbars="vertical|horizontal" />
 
     <LinearLayout
+        android:id="@+id/terminalKeyBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@color/terminal_bottom_bar"
@@ -156,7 +159,7 @@
             android:layout_marginTop="6dp"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:weightSum="7">
+            android:weightSum="8">
 
             <Button
                 android:id="@+id/altButton"
@@ -166,6 +169,16 @@
                 android:layout_marginEnd="6dp"
                 android:background="@drawable/button_secondary"
                 android:text="@string/action_alt"
+                android:textColor="@color/button_text_light" />
+
+            <Button
+                android:id="@+id/ctrlDButton"
+                style="@style/TerminalKeyButton"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:background="@drawable/button_secondary"
+                android:text="@string/action_ctrl_d"
                 android:textColor="@color/button_text_light" />
 
             <Button

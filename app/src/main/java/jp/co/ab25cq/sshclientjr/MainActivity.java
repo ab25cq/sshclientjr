@@ -4,7 +4,10 @@ import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.os.Build;
 import android.text.TextUtils;
+import android.view.Window;
+import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -48,12 +51,22 @@ public final class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        keepDecorInsideSystemBars();
         setContentView(R.layout.activity_main);
+        KeyboardInsetHelper.keepInsideSystemBars(this, findViewById(R.id.mainRoot));
 
         preferences = getSharedPreferences(PREFERENCES_NAME, MODE_PRIVATE);
         bindViews();
         restoreSavedConnection();
         loadHistory();
+    }
+
+    private void keepDecorInsideSystemBars() {
+        Window window = getWindow();
+        window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            window.setDecorFitsSystemWindows(true);
+        }
     }
 
     private void bindViews() {
@@ -160,6 +173,19 @@ public final class MainActivity extends Activity {
     }
 
     private void connect() {
+        ConnectionConfig config = readConnectionConfig();
+        if (config == null) {
+            return;
+        }
+        saveConnectionConfig(config);
+
+        Intent intent = filerModeCheckBox.isChecked()
+                ? FilerActivity.newIntent(this, config.host, config.port, config.username, config.password, config.privateKey, config.passphrase)
+                : TerminalActivity.newIntent(this, config.host, config.port, config.username, config.password, config.privateKey, config.passphrase);
+        startActivity(intent);
+    }
+
+    private ConnectionConfig readConnectionConfig() {
         String host = hostInput.getText().toString().trim();
         String portText = portInput.getText().toString().trim();
         String username = usernameInput.getText().toString().trim();
@@ -168,36 +194,56 @@ public final class MainActivity extends Activity {
         String passphrase = passphraseInput.getText().toString();
 
         if (TextUtils.isEmpty(host) || TextUtils.isEmpty(portText) || TextUtils.isEmpty(username)) {
-            Toast.makeText(this, "ホスト、ポート、ユーザー名は必須です。", Toast.LENGTH_SHORT).show();
-            return;
+            Toast.makeText(this, R.string.toast_login_required_fields, Toast.LENGTH_SHORT).show();
+            return null;
         }
         if (TextUtils.isEmpty(password) && TextUtils.isEmpty(privateKey)) {
-            Toast.makeText(this, "パスワードか秘密鍵のどちらかを入力してください。", Toast.LENGTH_SHORT).show();
-            return;
+            Toast.makeText(this, R.string.toast_login_password_or_key, Toast.LENGTH_SHORT).show();
+            return null;
         }
 
         int port;
         try {
             port = Integer.parseInt(portText);
         } catch (NumberFormatException e) {
-            Toast.makeText(this, "ポート番号が不正です。", Toast.LENGTH_SHORT).show();
-            return;
+            Toast.makeText(this, R.string.toast_invalid_port, Toast.LENGTH_SHORT).show();
+            return null;
         }
 
-        preferences.edit()
-                .putString(KEY_HOST, host)
-                .putString(KEY_PORT, portText)
-                .putString(KEY_USERNAME, username)
-                .putString(KEY_PASSWORD, password)
-                .putString(KEY_PRIVATE_KEY, privateKey)
-                .putString(KEY_KEY_PASSPHRASE, passphrase)
-                .apply();
-        saveHistoryEntry(new ConnectionHistoryEntry(host, portText, username, password, privateKey, passphrase));
+        return new ConnectionConfig(host, portText, port, username, password, privateKey, passphrase);
+    }
 
-        Intent intent = filerModeCheckBox.isChecked()
-                ? FilerActivity.newIntent(this, host, port, username, password, privateKey, passphrase)
-                : TerminalActivity.newIntent(this, host, port, username, password, privateKey, passphrase);
-        startActivity(intent);
+    private void saveConnectionConfig(ConnectionConfig config) {
+        preferences.edit()
+                .putString(KEY_HOST, config.host)
+                .putString(KEY_PORT, config.portText)
+                .putString(KEY_USERNAME, config.username)
+                .putString(KEY_PASSWORD, config.password)
+                .putString(KEY_PRIVATE_KEY, config.privateKey)
+                .putString(KEY_KEY_PASSPHRASE, config.passphrase)
+                .apply();
+        saveHistoryEntry(new ConnectionHistoryEntry(config.host, config.portText, config.username, config.password, config.privateKey, config.passphrase));
+    }
+
+
+    static final class ConnectionConfig {
+        final String host;
+        final String portText;
+        final int port;
+        final String username;
+        final String password;
+        final String privateKey;
+        final String passphrase;
+
+        private ConnectionConfig(String host, String portText, int port, String username, String password, String privateKey, String passphrase) {
+            this.host = host;
+            this.portText = portText;
+            this.port = port;
+            this.username = username;
+            this.password = password;
+            this.privateKey = privateKey;
+            this.passphrase = passphrase;
+        }
     }
 
     private static final class ConnectionHistoryEntry {

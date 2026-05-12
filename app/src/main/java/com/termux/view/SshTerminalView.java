@@ -32,6 +32,10 @@ public final class SshTerminalView extends View {
         void onModifierStateChanged(boolean ctrlEnabled, boolean altEnabled);
     }
 
+    public interface KeyboardListener {
+        void onKeyboardRequested(boolean imeModeEnabled);
+    }
+
     private static final int KEY_EVENT_SOURCE_SOFT_KEYBOARD = 0;
 
     private SshTerminalSession session;
@@ -43,6 +47,7 @@ public final class SshTerminalView extends View {
     private float scrollRemainder;
     private int combiningAccent;
     private ModifierListener modifierListener;
+    private KeyboardListener keyboardListener;
     private boolean ctrlModifier;
     private boolean altModifier;
     private boolean imeModeEnabled;
@@ -196,6 +201,10 @@ public final class SshTerminalView extends View {
 
     public void setModifierListener(ModifierListener listener) {
         modifierListener = listener;
+    }
+
+    public void setKeyboardListener(KeyboardListener listener) {
+        keyboardListener = listener;
     }
 
     public void setImeModeEnabled(boolean enabled) {
@@ -509,6 +518,9 @@ public final class SshTerminalView extends View {
     }
 
     private void showKeyboard() {
+        if (keyboardListener != null) {
+            keyboardListener.onKeyboardRequested(imeModeEnabled);
+        }
         InputMethodManager imm = (InputMethodManager) getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
         if (imm != null) {
             imm.restartInput(this);

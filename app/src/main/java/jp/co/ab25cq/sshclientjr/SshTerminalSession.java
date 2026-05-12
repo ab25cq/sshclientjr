@@ -1,9 +1,12 @@
 package com.sshclientjr;
 
+import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 
+import com.jcraft.jsch.Channel;
+import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.ChannelShell;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
@@ -35,8 +38,11 @@ public final class SshTerminalSession extends TerminalOutput {
     private static final int DEFAULT_ROWS = 24;
     private static final int DEFAULT_CELL_WIDTH = 8;
     private static final int DEFAULT_CELL_HEIGHT = 16;
+    private static final String CLEAN_INTERACTIVE_SHELL_COMMAND =
+            "if command -v bash >/dev/null 2>&1; then exec bash --noprofile --norc -i; else exec sh -i; fi";
 
     private final Client client;
+    private final Context context;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final AtomicBoolean disconnectNotified = new AtomicBoolean(true);
@@ -45,7 +51,7 @@ public final class SshTerminalSession extends TerminalOutput {
     private final TerminalSessionClient emulatorClient = new EmulatorCallbacks();
 
     private Session sshSession;
-    private ChannelShell channel;
+    private Channel channel;
     private OutputStream outputStream;
     private Thread readerThread;
     private volatile boolean disconnectRequested;
@@ -57,25 +63,44 @@ public final class SshTerminalSession extends TerminalOutput {
     private int cellHeight = DEFAULT_CELL_HEIGHT;
     private String title = "";
 
-    public SshTerminalSession(Client client) {
+    public SshTerminalSession(Context context, Client client) {
+        this.context = context.getApplicationContext();
         this.client = client;
         emulator = new TerminalEmulator(this, columns, rows, null, emulatorClient);
     }
 
     public void connect(String host, int port, String username, String password, String privateKey, String passphrase) {
+        connectInternal(host, port, username, password, privateKey, passphrase, null);
+    }
+
+    public void connectWithoutStartupFiles(String host, int port, String username, String password, String privateKey, String passphrase) {
+        connectWithCommand(host, port, username, password, privateKey, passphrase, CLEAN_INTERACTIVE_SHELL_COMMAND);
+    }
+
+    public void connectWithCommand(String host, int port, String username, String password, String privateKey, String passphrase, String command) {
+        connectInternal(host, port, username, password, privateKey, passphrase, command);
+    }
+
+    private void connectInternal(String host, int port, String username, String password, String privateKey, String passphrase, String execCommand) {
         executor.execute(() -> {
             closeActiveConnection();
             disconnectRequested = false;
             disconnectNotified.set(true);
 
             Session localSession = null;
-            ChannelShell localChannel = null;
+            Channel localChannel = null;
             OutputStream localOutput = null;
             try {
                 localSession = SshSessionFactory.connect(host, port, username, password, privateKey, passphrase);
-
-                localChannel = (ChannelShell) localSession.openChannel("shell");
-                localChannel.setPtyType("xterm-256color", columns, rows, columns * cellWidth, rows * cellHeight);
+                if (execCommand != null) {
+                    ChannelExec execChannel = (ChannelExec) localSession.openChannel("exec");
+                    execChannel.setCommand(execCommand);
+                    execChannel.setPty(true);
+                    localChannel = execChannel;
+                } else {
+                    localChannel = (ChannelShell) localSession.openChannel("shell");
+                }
+                setPtyType(localChannel);
                 InputStream inputStream = localChannel.getInputStream();
                 localOutput = localChannel.getOutputStream();
                 localChannel.connect(5_000);
@@ -110,7 +135,7 @@ public final class SshTerminalSession extends TerminalOutput {
         executor.execute(() -> {
             synchronized (lock) {
                 if (channel != null && channel.isConnected()) {
-                    channel.setPtySize(columns, rows, columns * cellWidth, rows * cellHeight);
+                    setPtySize(channel);
                 }
             }
         });
@@ -126,6 +151,10 @@ public final class SshTerminalSession extends TerminalOutput {
 
     public void sendCtrlC() {
         write(new byte[]{3}, 0, 1);
+    }
+
+    public void sendCtrlD() {
+        write(new byte[]{4}, 0, 1);
     }
 
     public void sendEscape() {
@@ -165,7 +194,7 @@ public final class SshTerminalSession extends TerminalOutput {
         executor.execute(() -> {
             disconnectRequested = true;
             closeActiveConnection();
-            notifyDisconnected("切断しました。");
+            notifyDisconnected(context.getString(R.string.toast_disconnected));
         });
     }
 
@@ -184,14 +213,14 @@ public final class SshTerminalSession extends TerminalOutput {
                 currentOutput = outputStream;
             }
             if (currentOutput == null) {
-                mainHandler.post(() -> client.onConnectionError("未接続のため送信できません。"));
+                mainHandler.post(() -> client.onConnectionError(context.getString(R.string.toast_send_not_connected)));
                 return;
             }
             try {
                 currentOutput.write(payload);
                 currentOutput.flush();
             } catch (IOException e) {
-                mainHandler.post(() -> client.onConnectionError("送信に失敗しました: " + e.getMessage()));
+                mainHandler.post(() -> client.onConnectionError(context.getString(R.string.toast_send_failed, e.getMessage())));
             }
         });
     }
@@ -248,14 +277,14 @@ public final class SshTerminalSession extends TerminalOutput {
                 }
             } catch (IOException e) {
                 if (!disconnectRequested) {
-                    mainHandler.post(() -> client.onConnectionError("受信に失敗しました: " + e.getMessage()));
+                    mainHandler.post(() -> client.onConnectionError(context.getString(R.string.toast_receive_failed, e.getMessage())));
                 }
             } finally {
                 closeActiveConnection();
                 if (disconnectRequested) {
-                    notifyDisconnected("切断しました。");
+                    notifyDisconnected(context.getString(R.string.toast_disconnected));
                 } else {
-                    notifyDisconnected("サーバーとの接続が終了しました。");
+                    notifyDisconnected(context.getString(R.string.toast_server_disconnected));
                 }
             }
         }, "ssh-terminal-reader");
@@ -264,7 +293,7 @@ public final class SshTerminalSession extends TerminalOutput {
 
     private void closeActiveConnection() {
         Thread localReaderThread;
-        ChannelShell localChannel;
+        Channel localChannel;
         Session localSession;
         OutputStream localOutput;
         synchronized (lock) {
@@ -295,12 +324,32 @@ public final class SshTerminalSession extends TerminalOutput {
         }
     }
 
-    private void disconnectSession(ChannelShell localChannel, Session localSession) {
+    private void disconnectSession(Channel localChannel, Session localSession) {
         if (localChannel != null) {
             localChannel.disconnect();
         }
         if (localSession != null) {
             localSession.disconnect();
+        }
+    }
+
+    private void setPtyType(Channel targetChannel) {
+        int width = columns * cellWidth;
+        int height = rows * cellHeight;
+        if (targetChannel instanceof ChannelShell) {
+            ((ChannelShell) targetChannel).setPtyType("xterm-256color", columns, rows, width, height);
+        } else if (targetChannel instanceof ChannelExec) {
+            ((ChannelExec) targetChannel).setPtyType("xterm-256color", columns, rows, width, height);
+        }
+    }
+
+    private void setPtySize(Channel targetChannel) {
+        int width = columns * cellWidth;
+        int height = rows * cellHeight;
+        if (targetChannel instanceof ChannelShell) {
+            ((ChannelShell) targetChannel).setPtySize(columns, rows, width, height);
+        } else if (targetChannel instanceof ChannelExec) {
+            ((ChannelExec) targetChannel).setPtySize(columns, rows, width, height);
         }
     }
 
@@ -312,9 +361,9 @@ public final class SshTerminalSession extends TerminalOutput {
 
     private String buildConnectionErrorMessage(Exception exception) {
         if (exception instanceof JSchException && exception.getMessage() != null) {
-            return "接続に失敗しました: " + exception.getMessage();
+            return context.getString(R.string.toast_connection_failed, exception.getMessage());
         }
-        return "接続に失敗しました: " + exception.getClass().getSimpleName();
+        return context.getString(R.string.toast_connection_failed, exception.getClass().getSimpleName());
     }
 
     private final class EmulatorCallbacks implements TerminalSessionClient {
