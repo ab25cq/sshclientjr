@@ -86,6 +86,7 @@ public final class FilerActivity extends Activity {
     private static final long PROGRESS_UPDATE_INTERVAL_MS = 100L;
     private static final long KEY_REPEAT_INITIAL_DELAY_MS = 350L;
     private static final long KEY_REPEAT_INTERVAL_MS = 80L;
+    private static final int TEXT_DETECTION_SAMPLE_BYTES = 4096;
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final ExecutorService attachDiscoveryExecutor = Executors.newSingleThreadExecutor();
@@ -149,6 +150,7 @@ public final class FilerActivity extends Activity {
     private Session sshSession;
     private ChannelSftp sftp;
     private volatile boolean connected;
+    private volatile boolean sftpConnecting;
     private boolean commandImeEnabled;
     private final List<ShellTab> shellTabs = new ArrayList<>();
     private ShellTab activeShellTab;
@@ -199,8 +201,10 @@ public final class FilerActivity extends Activity {
     protected void onResume() {
         super.onResume();
         loadLocalDirectory();
-        if (connected) {
+        if (isSftpConnected()) {
             refreshRemoteDirectory();
+        } else if (!sftpConnecting) {
+            reconnectSftp();
         }
     }
 
@@ -682,26 +686,35 @@ public final class FilerActivity extends Activity {
     }
 
     private void connectSftp() {
+        if (sftpConnecting || isSftpConnected()) {
+            return;
+        }
+        sftpConnecting = true;
         statusView.setText(text("Connecting SSH...", "SSH接続中..."));
         executor.execute(() -> {
-            connectSftpInternal();
+            connectSftpInternal(null);
         });
     }
 
     private void reconnectSftp() {
+        if (sftpConnecting) {
+            return;
+        }
+        sftpConnecting = true;
         statusView.setText(text("Reconnecting SSH...", "SSH再接続中..."));
+        String reconnectDirectory = remoteDirectory;
         executor.execute(() -> {
             disconnectSftp();
             runOnUiThread(() -> {
                 remoteRows.clear();
-                remotePathView.setText("");
+                remotePathView.setText(reconnectDirectory);
                 remoteAdapter.notifyDataSetChanged();
             });
-            connectSftpInternal();
+            connectSftpInternal(reconnectDirectory);
         });
     }
 
-    private void connectSftpInternal() {
+    private void connectSftpInternal(String preferredRemoteDirectory) {
             try {
                 setStatus(text("Connecting SSH...", "SSH接続中..."));
                 Session session = SshSessionFactory.connect(host, port, username, password, privateKey, passphrase);
@@ -711,15 +724,29 @@ public final class FilerActivity extends Activity {
                 sshSession = session;
                 sftp = channel;
                 setStatus(text("Loading directory...", "ディレクトリ取得中..."));
-                remoteDirectory = channel.pwd();
+                SftpException restoreDirectoryError = null;
+                String connectedDirectory;
+                if (!TextUtils.isEmpty(preferredRemoteDirectory) && !".".equals(preferredRemoteDirectory)) {
+                    try {
+                        channel.cd(preferredRemoteDirectory);
+                    } catch (SftpException e) {
+                        restoreDirectoryError = e;
+                    }
+                }
+                connectedDirectory = channel.pwd();
+                remoteDirectory = connectedDirectory;
                 connected = true;
-                List<FileRow> rows = loadRemoteRows(channel, remoteDirectory);
+                List<FileRow> rows = loadRemoteRows(channel, connectedDirectory);
+                SftpException finalRestoreDirectoryError = restoreDirectoryError;
                 runOnUiThread(() -> {
                     statusView.setText(R.string.status_connected);
                     remoteRows.clear();
                     remoteRows.addAll(rows);
                     remotePathView.setText(remoteDirectory);
                     remoteAdapter.notifyDataSetChanged();
+                    if (finalRestoreDirectoryError != null) {
+                        Toast.makeText(this, text("Cannot restore previous directory: ", "以前のディレクトリへ戻れません: ") + buildErrorMessage(finalRestoreDirectoryError), Toast.LENGTH_LONG).show();
+                    }
                     discoverDetachedShells(false);
                 });
             } catch (Exception e) {
@@ -728,7 +755,14 @@ public final class FilerActivity extends Activity {
                     statusView.setText(R.string.status_disconnected);
                     Toast.makeText(this, text("SFTP connection failed: ", "SFTP接続に失敗しました: ") + buildErrorMessage(e), Toast.LENGTH_LONG).show();
                 });
+            } finally {
+                sftpConnecting = false;
             }
+    }
+
+    private boolean isSftpConnected() {
+        ChannelSftp channel = sftp;
+        return connected && channel != null && channel.isConnected();
     }
 
     private void setStatus(String message) {
@@ -750,8 +784,8 @@ public final class FilerActivity extends Activity {
     private ShellTab createShellTab(String command) {
         ShellTab tab = new ShellTab();
         tab.id = ++shellTabCounter;
-        tab.tmuxSessionName = buildTmuxSessionName(tab.id);
         tab.remoteDirectory = remoteDirectory;
+        tab.tmuxSessionName = buildTmuxSessionName(tab.id, tab.remoteDirectory);
         tab.title = buildShellTabTitle(tab.id, tab.remoteDirectory);
         tab.pendingCommand = buildShellCommand(command);
         setupShellTab(tab);
@@ -803,6 +837,7 @@ public final class FilerActivity extends Activity {
                 runOnUiThread(() -> {
                     tab.connected = true;
                     tab.detached = false;
+                    statusView.setText(R.string.status_connected);
                     if (activeShellTab == tab) {
                         setShellKeyButtonsEnabled(true);
                         if (shellPanel.getVisibility() == View.VISIBLE) {
@@ -810,7 +845,6 @@ public final class FilerActivity extends Activity {
                             tab.view.onScreenUpdated();
                         }
                     }
-                    sendPendingShellCommand(tab);
                 });
             }
 
@@ -1436,6 +1470,10 @@ public final class FilerActivity extends Activity {
             Toast.makeText(this, text("Cannot open the file.", "ファイルを開けません。"), Toast.LENGTH_SHORT).show();
             return;
         }
+        if (!isLikelyTextLocalFile(row, uri)) {
+            Toast.makeText(this, text("Tap editing supports text files only. Long-press to open with Android.", "タップで開けるのはテキストファイルだけです。バイナリは長押しでAndroidから開いてください。"), Toast.LENGTH_LONG).show();
+            return;
+        }
         startActivity(FileEditorActivity.newLocalDocumentIntent(this, uri.toString(), row.name));
     }
 
@@ -1592,6 +1630,10 @@ public final class FilerActivity extends Activity {
 
     private void editRemoteFileOnExecutor(ChannelSftp channel, FileRow row) {
         try {
+            if (!isLikelyTextRemoteFile(channel, row)) {
+                runOnUiThread(() -> Toast.makeText(this, text("Tap editing supports text files only. Use long-press actions for binary files.", "タップで開けるのはテキストファイルだけです。バイナリは長押しメニューを使ってください。"), Toast.LENGTH_LONG).show());
+                return;
+            }
             File editDirectory = new File(getCacheDir(), "remote-edit");
             if (!editDirectory.exists()) {
                 editDirectory.mkdirs();
@@ -1611,6 +1653,207 @@ public final class FilerActivity extends Activity {
             )));
         } catch (SftpException e) {
             runOnUiThread(() -> Toast.makeText(this, text("Failed to download for editing: ", "編集用ダウンロードに失敗しました: ") + e.getMessage(), Toast.LENGTH_SHORT).show());
+        }
+    }
+
+    private boolean isLikelyTextLocalFile(FileRow row, Uri uri) {
+        Boolean typeDecision = decideTextByNameOrMime(row.name, row.mimeType);
+        if (Boolean.TRUE.equals(typeDecision)) {
+            return true;
+        }
+        if (Boolean.FALSE.equals(typeDecision)) {
+            return false;
+        }
+        try (InputStream input = getContentResolver().openInputStream(uri)) {
+            return input != null && isLikelyTextStream(input);
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    private boolean isLikelyTextRemoteFile(ChannelSftp channel, FileRow row) {
+        Boolean typeDecision = decideTextByNameOrMime(row.name, null);
+        if (Boolean.TRUE.equals(typeDecision)) {
+            return true;
+        }
+        if (Boolean.FALSE.equals(typeDecision)) {
+            return false;
+        }
+        try (InputStream input = channel.get(row.path)) {
+            return input != null && isLikelyTextStream(input);
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    private Boolean decideTextByNameOrMime(String name, String mimeType) {
+        if (!TextUtils.isEmpty(mimeType)) {
+            String normalizedMime = mimeType.toLowerCase(Locale.ROOT);
+            if (normalizedMime.startsWith("text/")) {
+                return true;
+            }
+            if (normalizedMime.contains("json")
+                    || normalizedMime.contains("xml")
+                    || normalizedMime.contains("javascript")
+                    || normalizedMime.contains("x-sh")
+                    || normalizedMime.contains("x-csrc")
+                    || normalizedMime.contains("x-java")) {
+                return true;
+            }
+            if (normalizedMime.startsWith("image/")
+                    || normalizedMime.startsWith("audio/")
+                    || normalizedMime.startsWith("video/")
+                    || normalizedMime.equals("application/pdf")
+                    || normalizedMime.equals("application/zip")
+                    || normalizedMime.equals("application/gzip")
+                    || normalizedMime.equals("application/octet-stream")) {
+                return false;
+            }
+        }
+
+        String extension = extensionOf(name);
+        if (TextUtils.isEmpty(extension)) {
+            return null;
+        }
+        if (isKnownTextExtension(extension)) {
+            return true;
+        }
+        if (isKnownBinaryExtension(extension)) {
+            return false;
+        }
+        return null;
+    }
+
+    private boolean isLikelyTextStream(InputStream input) throws Exception {
+        byte[] buffer = new byte[TEXT_DETECTION_SAMPLE_BYTES];
+        int read = input.read(buffer);
+        if (read <= 0) {
+            return true;
+        }
+        int suspiciousControls = 0;
+        for (int i = 0; i < read; i++) {
+            int value = buffer[i] & 0xff;
+            if (value == 0) {
+                return false;
+            }
+            if (value < 0x20 && value != '\n' && value != '\r' && value != '\t' && value != 0x1b && value != '\f') {
+                suspiciousControls++;
+            }
+        }
+        return suspiciousControls <= Math.max(1, read / 100);
+    }
+
+    private static String extensionOf(String name) {
+        if (TextUtils.isEmpty(name)) {
+            return "";
+        }
+        int dotIndex = name.lastIndexOf('.');
+        if (dotIndex < 0 || dotIndex + 1 >= name.length()) {
+            return "";
+        }
+        return name.substring(dotIndex + 1).toLowerCase(Locale.ROOT);
+    }
+
+    private static boolean isKnownTextExtension(String extension) {
+        switch (extension) {
+            case "txt":
+            case "md":
+            case "markdown":
+            case "log":
+            case "csv":
+            case "tsv":
+            case "json":
+            case "xml":
+            case "html":
+            case "htm":
+            case "css":
+            case "js":
+            case "ts":
+            case "jsx":
+            case "tsx":
+            case "java":
+            case "kt":
+            case "kts":
+            case "c":
+            case "h":
+            case "cpp":
+            case "hpp":
+            case "cc":
+            case "cs":
+            case "go":
+            case "rs":
+            case "py":
+            case "rb":
+            case "php":
+            case "sh":
+            case "bash":
+            case "zsh":
+            case "fish":
+            case "pl":
+            case "pm":
+            case "lua":
+            case "sql":
+            case "yaml":
+            case "yml":
+            case "toml":
+            case "ini":
+            case "conf":
+            case "cfg":
+            case "properties":
+            case "gradle":
+            case "bat":
+            case "ps1":
+            case "dockerfile":
+            case "gitignore":
+            case "env":
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private static boolean isKnownBinaryExtension(String extension) {
+        switch (extension) {
+            case "apk":
+            case "aab":
+            case "jar":
+            case "dex":
+            case "so":
+            case "class":
+            case "zip":
+            case "gz":
+            case "tgz":
+            case "bz2":
+            case "xz":
+            case "7z":
+            case "rar":
+            case "pdf":
+            case "png":
+            case "jpg":
+            case "jpeg":
+            case "gif":
+            case "webp":
+            case "bmp":
+            case "ico":
+            case "mp3":
+            case "wav":
+            case "ogg":
+            case "mp4":
+            case "mkv":
+            case "avi":
+            case "mov":
+            case "ttf":
+            case "otf":
+            case "woff":
+            case "woff2":
+            case "db":
+            case "sqlite":
+            case "sqlite3":
+            case "bin":
+            case "exe":
+                return true;
+            default:
+                return false;
         }
     }
 
@@ -2192,8 +2435,48 @@ public final class FilerActivity extends Activity {
         return "cd " + shellQuote(remoteDirectory) + "\n" + command + "\n";
     }
 
-    private String buildTmuxSessionName(int id) {
-        return "sshclientjr_" + System.currentTimeMillis() + "_" + id;
+    private String buildTmuxSessionName(int id, String directory) {
+        return "sshclientjr_" + sanitizeSessionNamePart(directoryName(directory)) + "_" + System.currentTimeMillis() + "_" + id;
+    }
+
+    private static String sanitizeSessionNamePart(String value) {
+        if (TextUtils.isEmpty(value) || "?".equals(value)) {
+            return "dir";
+        }
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < value.length(); i++) {
+            char c = value.charAt(i);
+            if (Character.isLetterOrDigit(c) || c == '_' || c == '-' || c == '.') {
+                builder.append(c);
+            } else {
+                builder.append('_');
+            }
+            if (builder.length() >= 32) {
+                break;
+            }
+        }
+        String sanitized = builder.toString();
+        while (sanitized.contains("__")) {
+            sanitized = sanitized.replace("__", "_");
+        }
+        sanitized = trimSessionNameSeparators(sanitized);
+        return TextUtils.isEmpty(sanitized) ? "dir" : sanitized;
+    }
+
+    private static String trimSessionNameSeparators(String value) {
+        int start = 0;
+        int end = value.length();
+        while (start < end && isSessionNameSeparator(value.charAt(start))) {
+            start++;
+        }
+        while (end > start && isSessionNameSeparator(value.charAt(end - 1))) {
+            end--;
+        }
+        return value.substring(start, end);
+    }
+
+    private static boolean isSessionNameSeparator(char c) {
+        return c == '_' || c == '-' || c == '.';
     }
 
     private String buildDiscoverDetachedShellsCommand() {
@@ -2216,11 +2499,13 @@ public final class FilerActivity extends Activity {
 
     private String buildTmuxAttachCommand(ShellTab tab) {
         String sessionName = shellQuote(tab.tmuxSessionName);
+        String startupCommand = TextUtils.isEmpty(tab.pendingCommand) ? "" : tab.pendingCommand;
         String noMultiplexerMessage = shellQuote(text(
                 "tmux/screen was not found, so detached sessions cannot be preserved.",
                 "tmux/screen が見つからないためデタッチ維持はできません。"
         ));
         return "SSHCLIENTJR_SESSION=" + sessionName + "; "
+                + "SSHCLIENTJR_STARTUP_COMMAND=" + shellQuote(startupCommand) + "; "
                 + "export LANG=ja_JP.UTF-8 2>/dev/null || export LANG=C.UTF-8 2>/dev/null; "
                 + "export LC_CTYPE=\"$LANG\"; "
                 + "stty iutf8 2>/dev/null; "
@@ -2236,14 +2521,31 @@ public final class FilerActivity extends Activity {
                 + "tmux set-environment -g LANG \"$LANG\" 2>/dev/null; "
                 + "tmux set-environment -g LC_CTYPE \"$LC_CTYPE\" 2>/dev/null; "
                 + "tmux set-option -g mouse on 2>/dev/null; "
+                + "if [ -n \"$SSHCLIENTJR_STARTUP_COMMAND\" ]; then "
+                + "tmux new-session -d -s \"$SSHCLIENTJR_SESSION\"; "
+                + "tmux load-buffer -b sshclientjr_cmd \"$SSHCLIENTJR_STARTUP_COMMAND\" 2>/dev/null "
+                + "&& tmux paste-buffer -b sshclientjr_cmd -t \"$SSHCLIENTJR_SESSION\" 2>/dev/null "
+                + "|| tmux send-keys -t \"$SSHCLIENTJR_SESSION\" \"$SSHCLIENTJR_STARTUP_COMMAND\"; "
+                + "tmux delete-buffer -b sshclientjr_cmd 2>/dev/null; "
+                + "exec tmux -u attach-session -t \"$SSHCLIENTJR_SESSION\"; "
+                + "else "
                 + "exec tmux -u new-session -s \"$SSHCLIENTJR_SESSION\"; "
+                + "fi; "
                 + "elif command -v screen >/dev/null 2>&1; then "
+                + "if [ -n \"$SSHCLIENTJR_STARTUP_COMMAND\" ]; then "
+                + "screen -U -dmS \"$SSHCLIENTJR_SESSION\"; "
+                + "screen -S \"$SSHCLIENTJR_SESSION\" -X stuff \"$SSHCLIENTJR_STARTUP_COMMAND\"; "
+                + "exec screen -U -xRR \"$SSHCLIENTJR_SESSION\"; "
+                + "else "
                 + "exec screen -U -S \"$SSHCLIENTJR_SESSION\"; "
+                + "fi; "
                 + "elif command -v bash >/dev/null 2>&1; then "
                 + "printf '%s\\n' " + noMultiplexerMessage + " >&2; "
+                + "if [ -n \"$SSHCLIENTJR_STARTUP_COMMAND\" ]; then eval \"$SSHCLIENTJR_STARTUP_COMMAND\"; fi; "
                 + "exec bash --noprofile --norc -i; "
                 + "else "
                 + "printf '%s\\n' " + noMultiplexerMessage + " >&2; "
+                + "if [ -n \"$SSHCLIENTJR_STARTUP_COMMAND\" ]; then eval \"$SSHCLIENTJR_STARTUP_COMMAND\"; fi; "
                 + "exec sh -i; "
                 + "fi";
     }
@@ -2275,17 +2577,6 @@ public final class FilerActivity extends Activity {
             return value.substring(slashIndex + 1);
         }
         return value;
-    }
-
-    private void sendPendingShellCommand(ShellTab tab) {
-        String command = tab.pendingCommand;
-        if (TextUtils.isEmpty(command)) {
-            return;
-        }
-        tab.pendingCommand = null;
-        byte[] bytes = command.getBytes(StandardCharsets.UTF_8);
-        tab.session.write(bytes, 0, bytes.length);
-        statusView.setText(R.string.status_connected);
     }
 
     private String shellQuote(String value) {
