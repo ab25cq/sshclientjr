@@ -1429,7 +1429,7 @@ public final class FilerActivity extends Activity {
         if (row == null) {
             return;
         }
-        if (row.directory || canOpenLocalDirectory(row.path)) {
+        if (row.directory || isLocalDocumentDirectory(row.path)) {
             localDirectoryDocumentId = row.path;
             loadLocalDirectory();
         } else {
@@ -1437,21 +1437,23 @@ public final class FilerActivity extends Activity {
         }
     }
 
-    private boolean canOpenLocalDirectory(String documentId) {
+    private boolean isLocalDocumentDirectory(String documentId) {
         if (TextUtils.isEmpty(documentId) || localTreeUri == null) {
             return false;
         }
         Cursor cursor = null;
         try {
-            Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(localTreeUri, documentId);
+            Uri documentUri = DocumentsContract.buildDocumentUriUsingTree(localTreeUri, documentId);
             cursor = getContentResolver().query(
-                    childrenUri,
-                    new String[]{Document.COLUMN_DOCUMENT_ID},
+                    documentUri,
+                    new String[]{Document.COLUMN_MIME_TYPE},
                     null,
                     null,
                     null
             );
-            return cursor != null;
+            return cursor != null
+                    && cursor.moveToFirst()
+                    && Document.MIME_TYPE_DIR.equals(cursor.getString(0));
         } catch (Exception ignored) {
             return false;
         } finally {

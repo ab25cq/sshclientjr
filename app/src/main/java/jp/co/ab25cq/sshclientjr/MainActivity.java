@@ -43,6 +43,7 @@ public final class MainActivity extends Activity {
     private EditText passphraseInput;
     private CheckBox filerModeCheckBox;
     private Button connectButton;
+    private Button clearUserDataButton;
 
     private SharedPreferences preferences;
     private ArrayAdapter<String> historyAdapter;
@@ -79,6 +80,7 @@ public final class MainActivity extends Activity {
         passphraseInput = findViewById(R.id.passphraseInput);
         filerModeCheckBox = findViewById(R.id.filerModeCheckBox);
         connectButton = findViewById(R.id.connectButton);
+        clearUserDataButton = findViewById(R.id.clearUserDataButton);
 
         historyAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, new ArrayList<>());
         historyAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -98,6 +100,7 @@ public final class MainActivity extends Activity {
         });
 
         connectButton.setOnClickListener(view -> connect());
+        clearUserDataButton.setOnClickListener(view -> clearUserData());
         passphraseInput.setOnEditorActionListener((textView, actionId, keyEvent) -> {
             if (actionId == EditorInfo.IME_ACTION_DONE) {
                 connect();
@@ -225,6 +228,33 @@ public final class MainActivity extends Activity {
         saveHistoryEntry(new ConnectionHistoryEntry(config.host, config.portText, config.username, config.password, config.privateKey, config.passphrase));
     }
 
+    private void clearUserData() {
+        usernameInput.setText("");
+        passwordInput.setText("");
+        privateKeyInput.setText("");
+        passphraseInput.setText("");
+
+        List<ConnectionHistoryEntry> sanitizedEntries = new ArrayList<>();
+        for (ConnectionHistoryEntry entry : historyEntries) {
+            sanitizedEntries.add(entry.withoutUserData());
+        }
+
+        JSONArray historyArray = new JSONArray();
+        for (ConnectionHistoryEntry entry : sanitizedEntries) {
+            historyArray.put(entry.toJson());
+        }
+
+        preferences.edit()
+                .remove(KEY_USERNAME)
+                .remove(KEY_PASSWORD)
+                .remove(KEY_PRIVATE_KEY)
+                .remove(KEY_KEY_PASSPHRASE)
+                .putString(KEY_CONNECTION_HISTORY, historyArray.toString())
+                .apply();
+        loadHistory();
+        Toast.makeText(this, R.string.toast_user_data_cleared, Toast.LENGTH_SHORT).show();
+    }
+
 
     static final class ConnectionConfig {
         final String host;
@@ -264,11 +294,17 @@ public final class MainActivity extends Activity {
         }
 
         private String getDisplayLabel() {
-            return username + "@" + host + ":" + port;
+            return TextUtils.isEmpty(username)
+                    ? host + ":" + port
+                    : username + "@" + host + ":" + port;
         }
 
         private boolean sameTarget(ConnectionHistoryEntry other) {
             return host.equals(other.host) && port.equals(other.port) && username.equals(other.username);
+        }
+
+        private ConnectionHistoryEntry withoutUserData() {
+            return new ConnectionHistoryEntry(host, port, "", "", "", "");
         }
 
         private JSONObject toJson() {
@@ -289,7 +325,7 @@ public final class MainActivity extends Activity {
             String host = object.optString(KEY_HOST, "");
             String port = object.optString(KEY_PORT, "22");
             String username = object.optString(KEY_USERNAME, "");
-            if (TextUtils.isEmpty(host) || TextUtils.isEmpty(username)) {
+            if (TextUtils.isEmpty(host)) {
                 return null;
             }
             return new ConnectionHistoryEntry(

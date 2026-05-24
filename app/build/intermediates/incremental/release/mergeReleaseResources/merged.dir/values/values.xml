@@ -31,6 +31,7 @@
     <string name="action_attach">Attach</string>
     <string name="action_back">Back</string>
     <string name="action_clear">Clear</string>
+    <string name="action_clear_user_data">Clear user data</string>
     <string name="action_connect">Connect</string>
     <string name="action_copy">Copy</string>
     <string name="action_copy_file_name">Copy file name</string>
@@ -121,6 +122,7 @@
     <string name="toast_send_failed">Send failed: %1$s</string>
     <string name="toast_send_not_connected">Cannot send because the session is not connected.</string>
     <string name="toast_server_disconnected">The server connection ended.</string>
+    <string name="toast_user_data_cleared">User name, password, and key data cleared.</string>
     <style name="TerminalKeyButton">
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">wrap_content</item>

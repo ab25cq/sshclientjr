@@ -40,6 +40,7 @@
     <string name="action_right">→</string>
     <string name="action_connect">Connect</string>
     <string name="action_disconnect">Disconnect</string>
+    <string name="action_clear_user_data">Clear user data</string>
     <string name="action_clear">Clear</string>
     <string name="action_send">Send</string>
     <string name="action_refresh">Refresh</string>
@@ -74,6 +75,7 @@
     <string name="toast_login_required_fields">Host, port, and user name are required.</string>
     <string name="toast_login_password_or_key">Enter either a password or a private key.</string>
     <string name="toast_invalid_port">Invalid port number.</string>
+    <string name="toast_user_data_cleared">User name, password, and key data cleared.</string>
     <string name="editor_search_hint">Search text</string>
     <string name="editor_search_title">Search</string>
     <string name="editor_search_backward_title">Search backward</string>

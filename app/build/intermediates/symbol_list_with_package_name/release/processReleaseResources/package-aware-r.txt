@@ -27,6 +27,7 @@ drawable text_select_handle_left_material
 drawable text_select_handle_right_material
 id altButton
 id backButton
+id clearUserDataButton
 id closeButton
 id connectButton
 id copyButton
@@ -135,6 +136,7 @@ string action_alt
 string action_attach
 string action_back
 string action_clear
+string action_clear_user_data
 string action_connect
 string action_copy
 string action_copy_file_name
@@ -225,6 +227,7 @@ string toast_selection_copied
 string toast_send_failed
 string toast_send_not_connected
 string toast_server_disconnected
+string toast_user_data_cleared
 style TerminalKeyButton
 style Theme_SshClientJr
 style Theme_SshClientJr_Terminal

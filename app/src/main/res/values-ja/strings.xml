@@ -40,6 +40,7 @@
     <string name="action_right">→</string>
     <string name="action_connect">接続</string>
     <string name="action_disconnect">切断</string>
+    <string name="action_clear_user_data">認証情報を削除</string>
     <string name="action_clear">クリア</string>
     <string name="action_send">送信</string>
     <string name="action_refresh">更新</string>
@@ -74,6 +75,7 @@
     <string name="toast_login_required_fields">ホスト、ポート、ユーザー名は必須です。</string>
     <string name="toast_login_password_or_key">パスワードか秘密鍵のどちらかを入力してください。</string>
     <string name="toast_invalid_port">ポート番号が不正です。</string>
+    <string name="toast_user_data_cleared">ユーザー名、パスワード、鍵情報を削除しました。</string>
     <string name="editor_search_hint">検索文字列</string>
     <string name="editor_search_title">検索</string>
     <string name="editor_search_backward_title">逆方向検索</string>

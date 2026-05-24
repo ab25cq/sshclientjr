@@ -4,6 +4,7 @@
     <string name="action_attach">Attach</string>
     <string name="action_back">戻る</string>
     <string name="action_clear">クリア</string>
+    <string name="action_clear_user_data">認証情報を削除</string>
     <string name="action_connect">接続</string>
     <string name="action_copy">Copy</string>
     <string name="action_copy_file_name">ファイル名コピー</string>
@@ -91,4 +92,5 @@
     <string name="toast_send_failed">送信に失敗しました: %1$s</string>
     <string name="toast_send_not_connected">未接続のため送信できません。</string>
     <string name="toast_server_disconnected">サーバーとの接続が終了しました。</string>
+    <string name="toast_user_data_cleared">ユーザー名、パスワード、鍵情報を削除しました。</string>
 </resources>

@@ -171,6 +171,15 @@
                 android:background="@drawable/button_primary"
                 android:text="@string/action_connect"
                 android:textColor="@color/button_text" />
+
+            <Button
+                android:id="@+id/clearUserDataButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/button_secondary"
+                android:text="@string/action_clear_user_data"
+                android:textColor="@color/button_text_light" />
         </LinearLayout>
     </LinearLayout>
 </ScrollView>
