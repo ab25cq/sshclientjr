@@ -8,6 +8,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.UriPermission;
+import android.content.res.Configuration;
 import android.database.Cursor;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
@@ -188,7 +189,7 @@ public final class FilerActivity extends Activity {
         readIntent();
         bindViews();
         KeyboardInsetHelper.keepBelowStatusBar(this, findViewById(R.id.filerTopBar));
-        KeyboardInsetHelper.keepAboveKeyboard(this, findViewById(R.id.filerShellKeyBar), 300);
+        KeyboardInsetHelper.keepAboveKeyboardAndNavigation(this, findViewById(R.id.filerShellKeyBar), 300);
         loadRemoteCommandHistory();
         loadDetachedShells();
         setShellKeyButtonsEnabled(false);
@@ -205,6 +206,9 @@ public final class FilerActivity extends Activity {
             refreshRemoteDirectory();
         } else if (!sftpConnecting) {
             reconnectSftp();
+        }
+        if (shellPanel != null && shellPanel.getVisibility() == View.VISIBLE && activeShellTab != null) {
+            showActiveShellKeyboard();
         }
     }
 
@@ -841,8 +845,8 @@ public final class FilerActivity extends Activity {
                     if (activeShellTab == tab) {
                         setShellKeyButtonsEnabled(true);
                         if (shellPanel.getVisibility() == View.VISIBLE) {
-                            tab.view.requestFocus();
                             tab.view.onScreenUpdated();
+                            showActiveShellKeyboard();
                         }
                     }
                 });
@@ -915,7 +919,7 @@ public final class FilerActivity extends Activity {
             if (activeShellTab != tab || shellPanel.getVisibility() != View.VISIBLE) {
                 return;
             }
-            KeyboardInsetHelper.setManualKeyboardVisible(this, findViewById(R.id.filerShellKeyBar), true, 300);
+            KeyboardInsetHelper.setManualKeyboardVisible(this, findViewById(R.id.filerShellKeyBar), shouldReserveSoftwareKeyboardSpace(), 300);
         }));
         shellTabs.add(tab);
         shellTabsContainer.addView(tab.button);
@@ -1014,9 +1018,9 @@ public final class FilerActivity extends Activity {
         updateShellTabButtons();
         setShellKeyButtonsEnabled(tab.connected);
         updateShellKeyButtonStates();
-        KeyboardInsetHelper.setManualKeyboardVisible(this, findViewById(R.id.filerShellKeyBar), tab.imeEnabled, 300);
-        tab.view.requestFocus();
+        KeyboardInsetHelper.setManualKeyboardVisible(this, findViewById(R.id.filerShellKeyBar), shouldReserveSoftwareKeyboardSpace(), 300);
         tab.view.onScreenUpdated();
+        showActiveShellKeyboard();
     }
 
     private void updateShellTabButtons() {
@@ -1062,14 +1066,42 @@ public final class FilerActivity extends Activity {
         }
         tab.imeEnabled = !tab.imeEnabled;
         tab.view.setImeModeEnabled(tab.imeEnabled);
-        KeyboardInsetHelper.setManualKeyboardVisible(this, findViewById(R.id.filerShellKeyBar), tab.imeEnabled, 300);
+        KeyboardInsetHelper.setManualKeyboardVisible(this, findViewById(R.id.filerShellKeyBar), shouldReserveSoftwareKeyboardSpace(), 300);
+        showActiveShellKeyboard();
+        updateShellKeyButtonStates();
+    }
+
+    private void showActiveShellKeyboard() {
+        ShellTab tab = activeShellTab;
+        if (tab == null || tab.view == null || shellPanel.getVisibility() != View.VISIBLE) {
+            return;
+        }
+        tab.view.setImeModeEnabled(tab.imeEnabled);
+        KeyboardInsetHelper.setManualKeyboardVisible(this, findViewById(R.id.filerShellKeyBar), shouldReserveSoftwareKeyboardSpace(), 300);
         tab.view.requestFocus();
         InputMethodManager imm = getSystemService(InputMethodManager.class);
         if (imm != null) {
             imm.restartInput(tab.view);
-            imm.showSoftInput(tab.view, InputMethodManager.SHOW_IMPLICIT);
         }
-        updateShellKeyButtonStates();
+        tab.view.showKeyboard();
+        keyRepeatHandler.postDelayed(() -> retryShowShellKeyboard(tab), 180L);
+        keyRepeatHandler.postDelayed(() -> retryShowShellKeyboard(tab), 600L);
+    }
+
+    private void retryShowShellKeyboard(ShellTab tab) {
+        if (tab == null || activeShellTab != tab || shellPanel.getVisibility() != View.VISIBLE) {
+            return;
+        }
+        KeyboardInsetHelper.setManualKeyboardVisible(this, findViewById(R.id.filerShellKeyBar), shouldReserveSoftwareKeyboardSpace(), 300);
+        tab.view.requestFocus();
+        tab.view.showKeyboard();
+    }
+
+    private boolean shouldReserveSoftwareKeyboardSpace() {
+        Configuration configuration = getResources().getConfiguration();
+        boolean hardwareKeyboardConnected = configuration.keyboard != Configuration.KEYBOARD_NOKEYS
+                && configuration.hardKeyboardHidden == Configuration.HARDKEYBOARDHIDDEN_NO;
+        return !hardwareKeyboardConnected;
     }
 
     private void updateShellKeyButtonStates() {
@@ -2515,6 +2547,7 @@ public final class FilerActivity extends Activity {
                 + "tmux set-environment -g LANG \"$LANG\" 2>/dev/null; "
                 + "tmux set-environment -g LC_CTYPE \"$LC_CTYPE\" 2>/dev/null; "
                 + "tmux set-option -g mouse on 2>/dev/null; "
+                + "tmux list-sessions -F '#{session_name}' 2>/dev/null | while IFS= read -r session_name; do tmux set-option -t \"$session_name\" mouse on 2>/dev/null; done; "
                 + "exec tmux -u attach-session -t \"$SSHCLIENTJR_SESSION\"; "
                 + "elif command -v screen >/dev/null 2>&1 && screen -list | grep -F \".$SSHCLIENTJR_SESSION\" >/dev/null 2>&1; then "
                 + "exec screen -U -xRR \"$SSHCLIENTJR_SESSION\"; "
@@ -2523,6 +2556,7 @@ public final class FilerActivity extends Activity {
                 + "tmux set-environment -g LANG \"$LANG\" 2>/dev/null; "
                 + "tmux set-environment -g LC_CTYPE \"$LC_CTYPE\" 2>/dev/null; "
                 + "tmux set-option -g mouse on 2>/dev/null; "
+                + "tmux list-sessions -F '#{session_name}' 2>/dev/null | while IFS= read -r session_name; do tmux set-option -t \"$session_name\" mouse on 2>/dev/null; done; "
                 + "if [ -n \"$SSHCLIENTJR_STARTUP_COMMAND\" ]; then "
                 + "tmux new-session -d -s \"$SSHCLIENTJR_SESSION\"; "
                 + "tmux load-buffer -b sshclientjr_cmd \"$SSHCLIENTJR_STARTUP_COMMAND\" 2>/dev/null "

@@ -40,6 +40,14 @@ public final class SshTerminalSession extends TerminalOutput {
     private static final int DEFAULT_CELL_HEIGHT = 16;
     private static final String CLEAN_INTERACTIVE_SHELL_COMMAND =
             "if command -v bash >/dev/null 2>&1; then exec bash --noprofile --norc -i; else exec sh -i; fi";
+    private static final String ENABLE_TMUX_MOUSE_COMMAND =
+            "if command -v tmux >/dev/null 2>&1; then "
+                    + "tmux start-server 2>/dev/null; "
+                    + "tmux set-option -g mouse on 2>/dev/null; "
+                    + "tmux list-sessions -F '#{session_name}' 2>/dev/null | while IFS= read -r session_name; do "
+                    + "tmux set-option -t \"$session_name\" mouse on 2>/dev/null; "
+                    + "done; "
+                    + "fi";
 
     private final Client client;
     private final Context context;
@@ -92,6 +100,7 @@ public final class SshTerminalSession extends TerminalOutput {
             OutputStream localOutput = null;
             try {
                 localSession = SshSessionFactory.connect(host, port, username, password, privateKey, passphrase);
+                enableTmuxMouse(localSession);
                 if (execCommand != null) {
                     ChannelExec execChannel = (ChannelExec) localSession.openChannel("exec");
                     execChannel.setCommand(execCommand);
@@ -120,6 +129,28 @@ public final class SshTerminalSession extends TerminalOutput {
                 mainHandler.post(() -> client.onConnectionError(buildConnectionErrorMessage(e)));
             }
         });
+    }
+
+    private void enableTmuxMouse(Session session) {
+        ChannelExec tmuxChannel = null;
+        try {
+            tmuxChannel = (ChannelExec) session.openChannel("exec");
+            tmuxChannel.setCommand(ENABLE_TMUX_MOUSE_COMMAND);
+            tmuxChannel.setInputStream(null);
+            tmuxChannel.setOutputStream(null);
+            tmuxChannel.setErrStream(null);
+            tmuxChannel.connect(2_000);
+            long deadline = System.currentTimeMillis() + 1_200L;
+            while (!tmuxChannel.isClosed() && System.currentTimeMillis() < deadline) {
+                Thread.sleep(20L);
+            }
+        } catch (Exception ignored) {
+            // tmux is optional. A failure here must not prevent opening the SSH terminal.
+        } finally {
+            if (tmuxChannel != null) {
+                tmuxChannel.disconnect();
+            }
+        }
     }
 
     public void updateSize(int newColumns, int newRows, int newCellWidth, int newCellHeight) {

@@ -50,6 +50,7 @@ public final class TerminalActivity extends Activity {
 
     private SshTerminalSession sshSession;
     private String baseSessionLabel = "";
+    private boolean terminalConnected;
     private boolean ctrlLocked;
     private boolean altLocked;
     private boolean imeEnabled;
@@ -91,6 +92,7 @@ public final class TerminalActivity extends Activity {
                     setConnectionState(true);
                     terminalView.requestFocus();
                     terminalView.onScreenUpdated();
+                    showTerminalKeyboard();
                 });
             }
 
@@ -153,6 +155,22 @@ public final class TerminalActivity extends Activity {
 
         bindViews();
         connectFromIntent();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (terminalConnected) {
+            showTerminalKeyboard();
+        }
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus && terminalConnected) {
+            showTerminalKeyboard();
+        }
     }
 
     @Override
@@ -233,6 +251,7 @@ public final class TerminalActivity extends Activity {
     }
 
     private void setConnectionState(boolean connected) {
+        terminalConnected = connected;
         statusView.setText(connected ? R.string.status_connected : R.string.status_disconnected);
         keyboardButton.setEnabled(connected);
         copyButton.setEnabled(connected);
@@ -262,13 +281,30 @@ public final class TerminalActivity extends Activity {
     private void toggleImeMode() {
         imeEnabled = !imeEnabled;
         terminalView.setImeModeEnabled(imeEnabled);
+        showTerminalKeyboard();
+        updateButtonStates();
+    }
+
+    private void showTerminalKeyboard() {
+        terminalView.setImeModeEnabled(imeEnabled);
         terminalView.requestFocus();
         InputMethodManager imm = getSystemService(InputMethodManager.class);
         if (imm != null) {
             imm.restartInput(terminalView);
-            imm.showSoftInput(terminalView, InputMethodManager.SHOW_IMPLICIT);
         }
-        updateButtonStates();
+        terminalView.showKeyboard();
+        keyRepeatHandler.postDelayed(() -> {
+            if (terminalConnected) {
+                terminalView.requestFocus();
+                terminalView.showKeyboard();
+            }
+        }, 180L);
+        keyRepeatHandler.postDelayed(() -> {
+            if (terminalConnected) {
+                terminalView.requestFocus();
+                terminalView.showKeyboard();
+            }
+        }, 600L);
     }
 
     private void updateButtonStates() {

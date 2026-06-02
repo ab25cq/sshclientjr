@@ -125,11 +125,11 @@
         <item name="android:layout_height">wrap_content</item>
         <item name="android:minWidth">0dp</item>
         <item name="android:minHeight">0dp</item>
-        <item name="android:paddingLeft">10dp</item>
-        <item name="android:paddingTop">6dp</item>
-        <item name="android:paddingRight">10dp</item>
-        <item name="android:paddingBottom">6dp</item>
-        <item name="android:textSize">11sp</item>
+        <item name="android:paddingLeft">7dp</item>
+        <item name="android:paddingTop">4dp</item>
+        <item name="android:paddingRight">7dp</item>
+        <item name="android:paddingBottom">4dp</item>
+        <item name="android:textSize">10sp</item>
     </style>
     <style name="Theme.SshClientJr" parent="@android:style/Theme.Material.Light.NoActionBar">
         <item name="android:statusBarColor">@color/terminal_bg</item>

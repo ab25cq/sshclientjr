@@ -29,6 +29,10 @@ final class KeyboardInsetHelper {
         keepAboveKeyboardInternal(activity, bottomBar, null, fallbackKeyboardHeightDp);
     }
 
+    static void keepAboveKeyboardAndNavigation(Activity activity, View bottomBar, int fallbackKeyboardHeightDp) {
+        keepAboveKeyboardInternal(activity, bottomBar, null, fallbackKeyboardHeightDp, true);
+    }
+
     static void keepBelowStatusBar(Activity activity, View topBar) {
         if (topBar == null) {
             return;
@@ -80,6 +84,10 @@ final class KeyboardInsetHelper {
     }
 
     private static void keepAboveKeyboardInternal(Activity activity, View bottomBar, View contentAboveBar, int fallbackKeyboardHeightDp) {
+        keepAboveKeyboardInternal(activity, bottomBar, contentAboveBar, fallbackKeyboardHeightDp, false);
+    }
+
+    private static void keepAboveKeyboardInternal(Activity activity, View bottomBar, View contentAboveBar, int fallbackKeyboardHeightDp, boolean includeNavigationBar) {
         ViewGroup content = activity.findViewById(android.R.id.content);
         if (content == null || content.getChildCount() == 0 || bottomBar == null) {
             return;
@@ -87,18 +95,21 @@ final class KeyboardInsetHelper {
         View root = content.getChildAt(0);
         int keyboardThreshold = dp(activity, 96);
         int fallbackKeyboardHeight = fallbackKeyboardHeightDp <= 0 ? 0 : dp(activity, fallbackKeyboardHeightDp);
+        int fallbackNavigationBarHeight = includeNavigationBar ? getNavigationBarHeight(activity) : 0;
         saveBaseMargins(bottomBar);
         final int[] imeBottomInset = {0};
+        final int[] navigationBottomInset = {0};
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             root.setOnApplyWindowInsetsListener((view, insets) -> {
                 imeBottomInset[0] = insets.getInsets(WindowInsets.Type.ime()).bottom;
-                applyKeyboardOffset(root, bottomBar, contentAboveBar, keyboardThreshold, imeBottomInset[0], fallbackKeyboardHeight);
+                navigationBottomInset[0] = includeNavigationBar ? insets.getInsets(WindowInsets.Type.navigationBars()).bottom : 0;
+                applyKeyboardOffset(root, bottomBar, contentAboveBar, keyboardThreshold, imeBottomInset[0], fallbackKeyboardHeight, Math.max(navigationBottomInset[0], fallbackNavigationBarHeight));
                 return insets;
             });
             root.requestApplyInsets();
         }
         root.getViewTreeObserver().addOnGlobalLayoutListener(() -> {
-            applyKeyboardOffset(root, bottomBar, contentAboveBar, keyboardThreshold, imeBottomInset[0], fallbackKeyboardHeight);
+            applyKeyboardOffset(root, bottomBar, contentAboveBar, keyboardThreshold, imeBottomInset[0], fallbackKeyboardHeight, Math.max(navigationBottomInset[0], fallbackNavigationBarHeight));
         });
     }
 
@@ -116,7 +127,7 @@ final class KeyboardInsetHelper {
         bottomBar.setTag(R.id.keyboard_inset_fallback_height, dp(activity, fallbackKeyboardHeightDp));
         ViewGroup content = activity.findViewById(android.R.id.content);
         if (content != null && content.getChildCount() > 0) {
-            applyKeyboardOffset(content.getChildAt(0), bottomBar, contentAboveBar, dp(activity, 96), 0, dp(activity, fallbackKeyboardHeightDp));
+            applyKeyboardOffset(content.getChildAt(0), bottomBar, contentAboveBar, dp(activity, 96), 0, dp(activity, fallbackKeyboardHeightDp), 0);
         }
     }
 
@@ -124,7 +135,7 @@ final class KeyboardInsetHelper {
         setManualKeyboardVisible(activity, bottomBar, null, visible, fallbackKeyboardHeightDp);
     }
 
-    private static void applyKeyboardOffset(View root, View bottomBar, View contentAboveBar, int keyboardThreshold, int imeBottomInset, int fallbackKeyboardHeight) {
+    private static void applyKeyboardOffset(View root, View bottomBar, View contentAboveBar, int keyboardThreshold, int imeBottomInset, int fallbackKeyboardHeight, int navigationBarHeight) {
         int rootHeight = root.getRootView().getHeight();
         int keyboardTop = rootHeight;
         boolean keyboardDetected = false;
@@ -151,6 +162,7 @@ final class KeyboardInsetHelper {
                 overlap = Math.max(0, manualHeight);
             }
         }
+        overlap = Math.max(overlap, Math.max(0, navigationBarHeight));
         bottomBar.setTranslationY(0f);
         applyBottomBarMargin(bottomBar, overlap);
         applyContentBottomPadding(contentAboveBar, overlap);

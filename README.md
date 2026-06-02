@@ -4,13 +4,7 @@
 
 buildはcodexなどのcliのAIを使うのが早いです。サーバーでコンパイルしてローカルのスマホにscpすると楽です。
 
-# join google play tester
+# App Store
 
-join the sshclientjr group
-
-https://groups.google.com/g/sshclientjr
-
-become the tester and install the app
-
-https://play.google.com/apps/testing/com.sshclientjr
+https://play.google.com/store/apps/details?id=com.sshclientjr&hl=en-US&ah=pbOOvuiB2uuYUdaDNM_KvZ4mbPk
 

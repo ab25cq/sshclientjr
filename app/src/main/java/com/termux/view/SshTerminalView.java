@@ -99,6 +99,11 @@ public final class SshTerminalView extends View {
                     return true;
                 }
                 requestFocus();
+                if (emulator != null && emulator.isMouseTrackingActive()) {
+                    sendMouseEventCode(e, TerminalEmulator.MOUSE_LEFT_BUTTON, true);
+                    sendMouseEventCode(e, TerminalEmulator.MOUSE_LEFT_BUTTON, false);
+                    return true;
+                }
                 showKeyboard();
                 return true;
             }
@@ -517,7 +522,7 @@ public final class SshTerminalView extends View {
         return true;
     }
 
-    private void showKeyboard() {
+    public void showKeyboard() {
         if (keyboardListener != null) {
             keyboardListener.onKeyboardRequested(imeModeEnabled);
         }
