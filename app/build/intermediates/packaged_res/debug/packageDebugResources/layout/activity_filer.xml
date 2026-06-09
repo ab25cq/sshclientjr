@@ -26,22 +26,30 @@
             android:textStyle="bold" />
 
         <Button
-            android:id="@+id/refreshButton"
+            android:id="@+id/filerShellAttachButton"
             style="@style/TerminalKeyButton"
             android:background="@drawable/button_secondary"
-            android:text="@string/action_refresh"
+            android:text="@string/action_attach"
             android:textColor="@color/button_text_light" />
 
         <Button
-            android:id="@+id/reconnectButton"
+            android:id="@+id/filerShellDetachButton"
             style="@style/TerminalKeyButton"
             android:layout_marginStart="8dp"
             android:background="@drawable/button_secondary"
-            android:text="@string/action_reconnect"
+            android:text="@string/action_detach"
             android:textColor="@color/button_text_light" />
 
         <Button
-            android:id="@+id/closeButton"
+            android:id="@+id/filerShellDisconnectButton"
+            style="@style/TerminalKeyButton"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/button_secondary"
+            android:text="@string/action_disconnect"
+            android:textColor="@color/button_text_light" />
+
+        <Button
+            android:id="@+id/connectionBackButton"
             style="@style/TerminalKeyButton"
             android:layout_marginStart="8dp"
             android:background="@drawable/button_secondary"
@@ -58,7 +66,8 @@
         android:paddingBottom="6dp"
         android:paddingLeft="12dp"
         android:paddingRight="12dp"
-        android:paddingTop="6dp">
+        android:paddingTop="6dp"
+        android:visibility="gone">
 
         <Button
             android:id="@+id/filerTabButton"
@@ -260,23 +269,23 @@
         android:layout_height="wrap_content"
         android:background="@color/terminal_bottom_bar"
         android:orientation="vertical"
-        android:paddingBottom="8dp"
-        android:paddingLeft="12dp"
-        android:paddingRight="12dp"
-        android:paddingTop="8dp">
+        android:paddingBottom="4dp"
+        android:paddingLeft="6dp"
+        android:paddingRight="6dp"
+        android:paddingTop="4dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:weightSum="8">
+                android:weightSum="6">
 
                 <Button
                     android:id="@+id/filerShellKeyboardButton"
                     style="@style/TerminalKeyButton"
                     android:layout_width="0dp"
-                    android:layout_marginEnd="6dp"
+                    android:layout_marginEnd="4dp"
                     android:layout_weight="1"
                     android:background="@drawable/button_secondary"
                     android:text="@string/action_keyboard"
@@ -286,7 +295,7 @@
                     android:id="@+id/filerShellEscButton"
                     style="@style/TerminalKeyButton"
                     android:layout_width="0dp"
-                    android:layout_marginEnd="6dp"
+                    android:layout_marginEnd="4dp"
                     android:layout_weight="1"
                     android:background="@drawable/button_secondary"
                     android:text="@string/action_esc"
@@ -296,7 +305,7 @@
                     android:id="@+id/filerShellTabKeyButton"
                     style="@style/TerminalKeyButton"
                     android:layout_width="0dp"
-                    android:layout_marginEnd="6dp"
+                    android:layout_marginEnd="4dp"
                     android:layout_weight="1"
                     android:background="@drawable/button_secondary"
                     android:text="@string/action_tab"
@@ -306,7 +315,7 @@
                     android:id="@+id/filerShellCopyButton"
                     style="@style/TerminalKeyButton"
                     android:layout_width="0dp"
-                    android:layout_marginEnd="6dp"
+                    android:layout_marginEnd="4dp"
                     android:layout_weight="1"
                     android:background="@drawable/button_secondary"
                     android:text="@string/action_copy"
@@ -316,7 +325,7 @@
                     android:id="@+id/filerShellPasteButton"
                     style="@style/TerminalKeyButton"
                     android:layout_width="0dp"
-                    android:layout_marginEnd="6dp"
+                    android:layout_marginEnd="4dp"
                     android:layout_weight="1"
                     android:background="@drawable/button_secondary"
                     android:text="@string/action_paste"
@@ -326,65 +335,37 @@
                     android:id="@+id/filerShellCtrlButton"
                     style="@style/TerminalKeyButton"
                     android:layout_width="0dp"
-                    android:layout_marginEnd="6dp"
+                    android:layout_marginEnd="4dp"
                     android:layout_weight="1"
                     android:background="@drawable/button_secondary"
                     android:text="@string/action_ctrl"
                     android:textColor="@color/button_text_light" />
 
-                <Button
-                    android:id="@+id/filerShellDetachButton"
-                    style="@style/TerminalKeyButton"
-                    android:layout_width="0dp"
-                    android:layout_marginEnd="6dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/button_secondary"
-                    android:text="@string/action_detach"
-                    android:textColor="@color/button_text_light" />
-
-                <Button
-                    android:id="@+id/filerShellAttachButton"
-                    style="@style/TerminalKeyButton"
-                    android:layout_width="0dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/button_secondary"
-                    android:text="@string/action_attach"
-                    android:textColor="@color/button_text_light" />
             </LinearLayout>
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
+                android:layout_marginTop="4dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:weightSum="8">
+                android:weightSum="7">
 
                 <Button
                     android:id="@+id/filerShellAltButton"
                     style="@style/TerminalKeyButton"
                     android:layout_width="0dp"
-                    android:layout_marginEnd="6dp"
+                    android:layout_marginEnd="4dp"
                     android:layout_weight="1"
                     android:background="@drawable/button_secondary"
                     android:text="@string/action_alt"
                     android:textColor="@color/button_text_light" />
 
                 <Button
-                    android:id="@+id/filerShellCtrlDButton"
-                    style="@style/TerminalKeyButton"
-                    android:layout_width="0dp"
-                    android:layout_marginEnd="6dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/button_secondary"
-                    android:text="@string/action_ctrl_d"
-                    android:textColor="@color/button_text_light" />
-
-                <Button
                     android:id="@+id/filerShellPageUpButton"
                     style="@style/TerminalKeyButton"
                     android:layout_width="0dp"
-                    android:layout_marginEnd="6dp"
+                    android:layout_marginEnd="4dp"
                     android:layout_weight="1"
                     android:background="@drawable/button_secondary"
                     android:text="@string/action_page_up"
@@ -394,7 +375,7 @@
                     android:id="@+id/filerShellLeftButton"
                     style="@style/TerminalKeyButton"
                     android:layout_width="0dp"
-                    android:layout_marginEnd="6dp"
+                    android:layout_marginEnd="4dp"
                     android:layout_weight="1"
                     android:background="@drawable/button_secondary"
                     android:text="@string/action_left"
@@ -404,7 +385,7 @@
                     android:id="@+id/filerShellDownButton"
                     style="@style/TerminalKeyButton"
                     android:layout_width="0dp"
-                    android:layout_marginEnd="6dp"
+                    android:layout_marginEnd="4dp"
                     android:layout_weight="1"
                     android:background="@drawable/button_secondary"
                     android:text="@string/action_down"
@@ -414,7 +395,7 @@
                     android:id="@+id/filerShellUpButton"
                     style="@style/TerminalKeyButton"
                     android:layout_width="0dp"
-                    android:layout_marginEnd="6dp"
+                    android:layout_marginEnd="4dp"
                     android:layout_weight="1"
                     android:background="@drawable/button_secondary"
                     android:text="@string/action_up"
@@ -433,7 +414,7 @@
                     android:id="@+id/filerShellPageDownButton"
                     style="@style/TerminalKeyButton"
                     android:layout_width="0dp"
-                    android:layout_marginStart="6dp"
+                    android:layout_marginStart="4dp"
                     android:layout_weight="1"
                     android:background="@drawable/button_secondary"
                     android:text="@string/action_page_down"

@@ -87,6 +87,7 @@ public final class FilerActivity extends Activity {
     private static final long PROGRESS_UPDATE_INTERVAL_MS = 100L;
     private static final long KEY_REPEAT_INITIAL_DELAY_MS = 350L;
     private static final long KEY_REPEAT_INTERVAL_MS = 80L;
+    private static final int MAX_RECONNECT_ATTEMPTS = 5;
     private static final int TEXT_DETECTION_SAMPLE_BYTES = 4096;
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -106,9 +107,6 @@ public final class FilerActivity extends Activity {
     private ListView remoteListView;
     private EditText remoteCommandInput;
     private Button runCommandButton;
-    private Button refreshButton;
-    private Button reconnectButton;
-    private Button closeButton;
     private Button filerTabButton;
     private Button localPermissionButton;
     private Button localNewFileButton;
@@ -119,8 +117,9 @@ public final class FilerActivity extends Activity {
     private Button shellCtrlButton;
     private Button shellDetachButton;
     private Button shellAttachButton;
+    private Button shellDisconnectButton;
+    private Button connectionBackButton;
     private Button shellAltButton;
-    private Button shellCtrlDButton;
     private Button shellPageUpButton;
     private Button shellLeftButton;
     private Button shellDownButton;
@@ -152,11 +151,17 @@ public final class FilerActivity extends Activity {
     private ChannelSftp sftp;
     private volatile boolean connected;
     private volatile boolean sftpConnecting;
+    private boolean foreground;
+    private boolean closing;
+    private boolean sftpReconnectWhenForeground;
+    private boolean sftpConnectedWhenPaused;
+    private int sftpReconnectAttempts;
     private boolean commandImeEnabled;
     private final List<ShellTab> shellTabs = new ArrayList<>();
     private ShellTab activeShellTab;
     private int shellTabCounter;
     private PopupWindow commandHistoryPopup;
+    private AlertDialog attachShellDialog;
     private final Handler keyRepeatHandler = new Handler(Looper.getMainLooper());
     private int repeatingKeyCode = KeyEvent.KEYCODE_UNKNOWN;
     private final Runnable keyRepeatRunnable = new Runnable() {
@@ -201,15 +206,25 @@ public final class FilerActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        foreground = true;
         loadLocalDirectory();
         if (isSftpConnected()) {
             refreshRemoteDirectory();
-        } else if (!sftpConnecting) {
-            reconnectSftp();
+        } else if (sftpReconnectWhenForeground || sftpConnectedWhenPaused) {
+            reconnectSftpAfterForeground();
         }
+        sftpConnectedWhenPaused = false;
+        reconnectShellTabsAfterForeground();
         if (shellPanel != null && shellPanel.getVisibility() == View.VISIBLE && activeShellTab != null) {
             showActiveShellKeyboard();
         }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        sftpConnectedWhenPaused = isSftpConnected();
+        foreground = false;
     }
 
     @Override
@@ -246,11 +261,13 @@ public final class FilerActivity extends Activity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        closing = true;
         stopRepeatingShellKey();
         if (commandHistoryPopup != null) {
             commandHistoryPopup.dismiss();
             commandHistoryPopup = null;
         }
+        dismissAttachShellDialog();
         for (ShellTab tab : shellTabs) {
             saveDetachedShell(tab);
             tab.session.release();
@@ -260,6 +277,15 @@ public final class FilerActivity extends Activity {
         disconnectSftp();
         executor.shutdownNow();
         attachDiscoveryExecutor.shutdownNow();
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (shellPanel != null && shellPanel.getVisibility() == View.VISIBLE) {
+            returnToFilerFromShell();
+            return;
+        }
+        super.onBackPressed();
     }
 
     private void readIntent() {
@@ -287,9 +313,6 @@ public final class FilerActivity extends Activity {
         remoteListView = findViewById(R.id.remoteList);
         remoteCommandInput = findViewById(R.id.remoteCommandInput);
         runCommandButton = findViewById(R.id.runCommandButton);
-        refreshButton = findViewById(R.id.refreshButton);
-        reconnectButton = findViewById(R.id.reconnectButton);
-        closeButton = findViewById(R.id.closeButton);
         filerTabButton = findViewById(R.id.filerTabButton);
         localPermissionButton = findViewById(R.id.localPermissionButton);
         localNewFileButton = findViewById(R.id.localNewFileButton);
@@ -300,8 +323,9 @@ public final class FilerActivity extends Activity {
         shellCtrlButton = findViewById(R.id.filerShellCtrlButton);
         shellDetachButton = findViewById(R.id.filerShellDetachButton);
         shellAttachButton = findViewById(R.id.filerShellAttachButton);
+        shellDisconnectButton = findViewById(R.id.filerShellDisconnectButton);
+        connectionBackButton = findViewById(R.id.connectionBackButton);
         shellAltButton = findViewById(R.id.filerShellAltButton);
-        shellCtrlDButton = findViewById(R.id.filerShellCtrlDButton);
         shellPageUpButton = findViewById(R.id.filerShellPageUpButton);
         shellLeftButton = findViewById(R.id.filerShellLeftButton);
         shellDownButton = findViewById(R.id.filerShellDownButton);
@@ -339,11 +363,6 @@ public final class FilerActivity extends Activity {
             showRemoteActionDialog(remoteRows.get(position));
             return true;
         });
-        refreshButton.setOnClickListener(view -> {
-            loadLocalDirectory();
-            refreshRemoteDirectory();
-        });
-        reconnectButton.setOnClickListener(view -> reconnectSftp());
         runCommandButton.setOnClickListener(view -> runRemoteCommand());
         remoteCommandInput.setOnClickListener(view -> showRemoteCommandHistoryMenu());
         configureCommandInputIme(remoteCommandInput);
@@ -365,7 +384,6 @@ public final class FilerActivity extends Activity {
             }
             return false;
         });
-        closeButton.setOnClickListener(view -> finish());
         filerTabButton.setOnClickListener(view -> showFilerTab());
         localPermissionButton.setOnClickListener(view -> showLocalDirectoryPermissionDialog());
         localNewFileButton.setOnClickListener(view -> showCreateLocalMenu());
@@ -379,13 +397,11 @@ public final class FilerActivity extends Activity {
         });
         shellDetachButton.setOnClickListener(view -> detachActiveShellTab());
         shellAttachButton.setOnClickListener(view -> showAttachDetachedShellDialog());
+        shellDisconnectButton.setOnClickListener(view -> disconnectActiveShellTab());
+        connectionBackButton.setOnClickListener(view -> finish());
         shellAltButton.setOnClickListener(view -> {
             ShellTab tab = activeShellTab;
             if (tab != null) tab.view.setAltModifier(!tab.altLocked);
-        });
-        shellCtrlDButton.setOnClickListener(view -> {
-            ShellTab tab = activeShellTab;
-            if (tab != null) tab.session.sendCtrlD();
         });
         shellPageUpButton.setOnClickListener(view -> sendShellKey(KeyEvent.KEYCODE_PAGE_UP));
         setRepeatingShellKeyListener(shellLeftButton, KeyEvent.KEYCODE_DPAD_LEFT);
@@ -696,29 +712,72 @@ public final class FilerActivity extends Activity {
         sftpConnecting = true;
         statusView.setText(text("Connecting SSH...", "SSH接続中..."));
         executor.execute(() -> {
-            connectSftpInternal(null);
+            connectSftpInternal(null, true, null);
         });
     }
 
     private void reconnectSftp() {
+        reconnectSftp(true);
+    }
+
+    private void reconnectSftp(boolean loadDirectory) {
         if (sftpConnecting) {
             return;
         }
         sftpConnecting = true;
         statusView.setText(text("Reconnecting SSH...", "SSH再接続中..."));
         String reconnectDirectory = remoteDirectory;
+        ListScrollState scrollState = loadDirectory ? captureRemoteScrollState() : null;
         executor.execute(() -> {
             disconnectSftp();
-            runOnUiThread(() -> {
-                remoteRows.clear();
-                remotePathView.setText(reconnectDirectory);
-                remoteAdapter.notifyDataSetChanged();
-            });
-            connectSftpInternal(reconnectDirectory);
+            if (loadDirectory) {
+                runOnUiThread(() -> {
+                    remotePathView.setText(reconnectDirectory);
+                });
+            }
+            connectSftpInternal(reconnectDirectory, loadDirectory, scrollState);
         });
     }
 
-    private void connectSftpInternal(String preferredRemoteDirectory) {
+    private void handleSftpConnectionLost() {
+        if (closing) {
+            return;
+        }
+        if (sftpReconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+            sftpReconnectWhenForeground = true;
+            if (foreground) {
+                reconnectSftpAfterForeground();
+            }
+        }
+    }
+
+    private void reconnectSftpAfterForeground() {
+        if (closing || isSftpConnected() || sftpConnecting) {
+            return;
+        }
+        if (sftpReconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+            sftpReconnectWhenForeground = false;
+            return;
+        }
+        if (!foreground || (!sftpReconnectWhenForeground && !sftpConnectedWhenPaused)) {
+            sftpReconnectWhenForeground = true;
+            return;
+        }
+        sftpReconnectWhenForeground = false;
+        sftpReconnectAttempts++;
+        statusView.setText(getString(R.string.status_reconnecting_attempt, sftpReconnectAttempts, MAX_RECONNECT_ATTEMPTS));
+        reconnectSftp(shouldLoadRemoteDirectoryAfterAutoReconnect());
+    }
+
+    private boolean shouldLoadRemoteDirectoryAfterAutoReconnect() {
+        return shellPanel == null || !hasShellSessionRunning();
+    }
+
+    private boolean hasShellSessionRunning() {
+        return !shellTabs.isEmpty() || !detachedShells.isEmpty();
+    }
+
+    private void connectSftpInternal(String preferredRemoteDirectory, boolean loadDirectory, ListScrollState scrollState) {
             try {
                 setStatus(text("Connecting SSH...", "SSH接続中..."));
                 Session session = SshSessionFactory.connect(host, port, username, password, privateKey, passphrase);
@@ -727,7 +786,9 @@ public final class FilerActivity extends Activity {
                 channel.connect(5_000);
                 sshSession = session;
                 sftp = channel;
-                setStatus(text("Loading directory...", "ディレクトリ取得中..."));
+                if (loadDirectory) {
+                    setStatus(text("Loading directory...", "ディレクトリ取得中..."));
+                }
                 SftpException restoreDirectoryError = null;
                 String connectedDirectory;
                 if (!TextUtils.isEmpty(preferredRemoteDirectory) && !".".equals(preferredRemoteDirectory)) {
@@ -740,14 +801,19 @@ public final class FilerActivity extends Activity {
                 connectedDirectory = channel.pwd();
                 remoteDirectory = connectedDirectory;
                 connected = true;
-                List<FileRow> rows = loadRemoteRows(channel, connectedDirectory);
+                List<FileRow> rows = loadDirectory ? loadRemoteRows(channel, connectedDirectory) : null;
                 SftpException finalRestoreDirectoryError = restoreDirectoryError;
                 runOnUiThread(() -> {
+                    sftpReconnectAttempts = 0;
+                    sftpReconnectWhenForeground = false;
                     statusView.setText(R.string.status_connected);
-                    remoteRows.clear();
-                    remoteRows.addAll(rows);
                     remotePathView.setText(remoteDirectory);
-                    remoteAdapter.notifyDataSetChanged();
+                    if (rows != null) {
+                        remoteRows.clear();
+                        remoteRows.addAll(rows);
+                        remoteAdapter.notifyDataSetChanged();
+                        restoreRemoteScrollState(scrollState);
+                    }
                     if (finalRestoreDirectoryError != null) {
                         Toast.makeText(this, text("Cannot restore previous directory: ", "以前のディレクトリへ戻れません: ") + buildErrorMessage(finalRestoreDirectoryError), Toast.LENGTH_LONG).show();
                     }
@@ -755,9 +821,11 @@ public final class FilerActivity extends Activity {
                 });
             } catch (Exception e) {
                 disconnectSftp();
+                sftpConnecting = false;
                 runOnUiThread(() -> {
                     statusView.setText(R.string.status_disconnected);
                     Toast.makeText(this, text("SFTP connection failed: ", "SFTP接続に失敗しました: ") + buildErrorMessage(e), Toast.LENGTH_LONG).show();
+                    handleSftpConnectionLost();
                 });
             } finally {
                 sftpConnecting = false;
@@ -841,6 +909,8 @@ public final class FilerActivity extends Activity {
                 runOnUiThread(() -> {
                     tab.connected = true;
                     tab.detached = false;
+                    tab.reconnectWhenForeground = false;
+                    tab.reconnectAttempts = 0;
                     statusView.setText(R.string.status_connected);
                     if (activeShellTab == tab) {
                         setShellKeyButtonsEnabled(true);
@@ -863,8 +933,16 @@ public final class FilerActivity extends Activity {
 
             @Override
             public void onConnectionError(String message) {
+                boolean lostWhileForeground = foreground;
                 runOnUiThread(() -> {
                     tab.connected = false;
+                    if (!tab.closed && !tab.detached) {
+                        markShellTabForForegroundReconnect(tab);
+                        if (lostWhileForeground) {
+                            Toast.makeText(FilerActivity.this, message, Toast.LENGTH_SHORT).show();
+                        }
+                        return;
+                    }
                     if (activeShellTab == tab) {
                         setShellKeyButtonsEnabled(false);
                     }
@@ -874,11 +952,17 @@ public final class FilerActivity extends Activity {
 
             @Override
             public void onDisconnected(String message) {
+                boolean lostWhileForeground = foreground;
                 runOnUiThread(() -> {
                     tab.connected = false;
                     if (!tab.closed && !tab.detached) {
-                        removeShellTab(tab, false);
-                    } else if (activeShellTab == tab) {
+                        markShellTabForForegroundReconnect(tab);
+                        if (lostWhileForeground) {
+                            Toast.makeText(FilerActivity.this, message, Toast.LENGTH_SHORT).show();
+                        }
+                        return;
+                    }
+                    if (activeShellTab == tab) {
                         setShellKeyButtonsEnabled(false);
                         updateShellKeyButtonStates();
                     }
@@ -941,6 +1025,7 @@ public final class FilerActivity extends Activity {
         }
         saveDetachedShell(tab);
         removeShellTab(tab, true);
+        reloadRemoteDirectoryForFilerScreen();
         Toast.makeText(this, text("Detached: ", "デタッチしました: ") + tab.title, Toast.LENGTH_SHORT).show();
     }
 
@@ -986,6 +1071,7 @@ public final class FilerActivity extends Activity {
         KeyboardInsetHelper.setManualKeyboardVisible(this, findViewById(R.id.filerShellKeyBar), false, 300);
         filerTabButton.setBackgroundResource(R.drawable.button_primary);
         filerTabButton.setTextColor(getColor(R.color.button_text));
+        connectionBackButton.setVisibility(View.VISIBLE);
         updateShellTabButtons();
         setShellKeyButtonsEnabled(activeShellTab != null && activeShellTab.connected);
         updateShellKeyButtonStates();
@@ -1012,6 +1098,7 @@ public final class FilerActivity extends Activity {
         shellPanel.setVisibility(View.VISIBLE);
         filerTabButton.setBackgroundResource(R.drawable.button_secondary);
         filerTabButton.setTextColor(getColor(R.color.button_text_light));
+        connectionBackButton.setVisibility(View.GONE);
         for (ShellTab shellTab : shellTabs) {
             shellTab.view.setVisibility(shellTab == tab ? View.VISIBLE : View.GONE);
         }
@@ -1039,9 +1126,9 @@ public final class FilerActivity extends Activity {
         shellPasteButton.setEnabled(enabled);
         shellCtrlButton.setEnabled(enabled);
         shellDetachButton.setEnabled(enabled);
-        shellAttachButton.setEnabled(!detachedShells.isEmpty());
+        shellAttachButton.setEnabled(filerMode && !detachedShells.isEmpty());
+        shellDisconnectButton.setEnabled(shellPanel.getVisibility() == View.VISIBLE && tab != null && !tab.closed);
         shellAltButton.setEnabled(enabled);
-        shellCtrlDButton.setEnabled(enabled);
         shellPageUpButton.setEnabled(enabled);
         shellLeftButton.setEnabled(enabled);
         shellDownButton.setEnabled(enabled);
@@ -1191,12 +1278,98 @@ public final class FilerActivity extends Activity {
         }
     }
 
+    private void returnToFilerFromShell() {
+        ShellTab tab = activeShellTab;
+        if (tab != null && tab.connected && !tab.closed) {
+            detachAndRemoveShellTab(tab);
+        } else if (tab != null && !tab.closed) {
+            removeShellTab(tab, true);
+        } else {
+            showFilerTab();
+        }
+    }
+
     private void detachActiveShellTab() {
         ShellTab tab = activeShellTab;
         if (tab == null || !tab.connected) {
             return;
         }
         detachAndRemoveShellTab(tab);
+    }
+
+    private void disconnectActiveShellTab() {
+        ShellTab tab = activeShellTab;
+        if (tab == null || tab.closed) {
+            return;
+        }
+        String sessionName = tab.tmuxSessionName;
+        detachedShells.removeIf(shell -> TextUtils.equals(shell.tmuxSessionName, sessionName));
+        saveDetachedShells();
+        removeShellTab(tab, true);
+        setStatus(text("Disconnecting shell...", "シェル切断中..."));
+        killServerShellSession(sessionName);
+        reloadRemoteDirectoryForFilerScreen();
+        Toast.makeText(this, R.string.toast_disconnected, Toast.LENGTH_SHORT).show();
+    }
+
+    private void reloadRemoteDirectoryForFilerScreen() {
+        if (isSftpConnected()) {
+            refreshRemoteDirectory();
+            return;
+        }
+        sftpReconnectAttempts = 0;
+        sftpReconnectWhenForeground = false;
+        reconnectSftp(true);
+    }
+
+    private void killServerShellSession(String sessionName) {
+        if (TextUtils.isEmpty(sessionName)) {
+            return;
+        }
+        attachDiscoveryExecutor.execute(() -> {
+            Exception killError = null;
+            Session session = null;
+            ChannelExec channel = null;
+            try {
+                session = SshSessionFactory.connect(host, port, username, password, privateKey, passphrase);
+                channel = (ChannelExec) session.openChannel("exec");
+                ByteArrayOutputStream output = new ByteArrayOutputStream();
+                ByteArrayOutputStream errorOutput = new ByteArrayOutputStream();
+                channel.setCommand(buildKillShellSessionCommand(sessionName));
+                channel.setErrStream(errorOutput);
+                InputStream input = channel.getInputStream();
+                channel.connect(5_000);
+                readCommandOutput(channel, input, output);
+            } catch (Exception e) {
+                killError = e;
+            } finally {
+                if (channel != null) {
+                    channel.disconnect();
+                }
+                if (session != null) {
+                    session.disconnect();
+                }
+            }
+            Exception finalKillError = killError;
+            runOnUiThread(() -> {
+                statusView.setText(connected ? getString(R.string.status_connected) : getString(R.string.status_disconnected));
+                if (finalKillError != null) {
+                    Toast.makeText(this, text("Cannot kill server shell session: ", "サーバー側シェルセッションを終了できません: ") + buildErrorMessage(finalKillError), Toast.LENGTH_LONG).show();
+                }
+            });
+        });
+    }
+
+    private String buildKillShellSessionCommand(String sessionName) {
+        String quotedSessionName = shellQuote(sessionName);
+        return "SSHCLIENTJR_SESSION=" + quotedSessionName + "; "
+                + "if command -v tmux >/dev/null 2>&1 && tmux has-session -t \"$SSHCLIENTJR_SESSION\" 2>/dev/null; then "
+                + "tmux kill-session -t \"$SSHCLIENTJR_SESSION\"; exit 0; "
+                + "fi; "
+                + "if command -v screen >/dev/null 2>&1; then "
+                + "screen -S \"$SSHCLIENTJR_SESSION\" -X quit >/dev/null 2>&1 || true; "
+                + "fi; "
+                + "exit 0";
     }
 
     private void showAttachDetachedShellDialog() {
@@ -1260,18 +1433,33 @@ public final class FilerActivity extends Activity {
             Toast.makeText(this, text("No attachable shells.", "アタッチできるシェルがありません。"), Toast.LENGTH_SHORT).show();
             return;
         }
-        if (detachedShells.size() == 1) {
-            attachDetachedShell(detachedShells.get(0));
+        final List<DetachedShell> candidates = new ArrayList<>(detachedShells);
+        if (candidates.size() == 1) {
+            attachDetachedShell(candidates.get(0).tmuxSessionName);
             return;
         }
-        String[] labels = new String[detachedShells.size()];
-        for (int i = 0; i < detachedShells.size(); i++) {
-            labels[i] = detachedShells.get(i).getDisplayLabel();
+        String[] labels = new String[candidates.size()];
+        for (int i = 0; i < candidates.size(); i++) {
+            labels[i] = candidates.get(i).getDisplayLabel();
         }
-        new AlertDialog.Builder(this)
+        dismissAttachShellDialog();
+        attachShellDialog = new AlertDialog.Builder(this)
                 .setTitle(text("Shell to attach", "アタッチするシェル"))
-                .setItems(labels, (dialog, which) -> attachDetachedShell(detachedShells.get(which)))
+                .setItems(labels, (dialog, which) -> {
+                    if (which < 0 || which >= candidates.size()) {
+                        return;
+                    }
+                    attachDetachedShell(candidates.get(which).tmuxSessionName);
+                })
+                .setOnDismissListener(dialog -> attachShellDialog = null)
                 .show();
+    }
+
+    private void dismissAttachShellDialog() {
+        if (attachShellDialog != null) {
+            attachShellDialog.dismiss();
+            attachShellDialog = null;
+        }
     }
 
     private void reconcileDetachedShells(List<DetachedShell> discovered) {
@@ -1350,16 +1538,31 @@ public final class FilerActivity extends Activity {
         }
     }
 
-    private void attachDetachedShell(DetachedShell detachedShell) {
-        if (detachedShell == null) {
+    private void attachDetachedShell(String tmuxSessionName) {
+        if (TextUtils.isEmpty(tmuxSessionName)) {
             return;
         }
-        detachedShells.remove(detachedShell);
+        DetachedShell detachedShell = findDetachedShell(tmuxSessionName);
+        if (detachedShell == null) {
+            Toast.makeText(this, text("The selected shell is no longer available.", "選択したシェルは既に利用できません。"), Toast.LENGTH_SHORT).show();
+            discoverDetachedShells(false);
+            return;
+        }
+        detachedShells.removeIf(shell -> TextUtils.equals(shell.tmuxSessionName, tmuxSessionName));
         saveDetachedShells();
         ShellTab tab = createAttachedShellTab(detachedShell);
         showShellTab(tab);
         setStatus(text("Reconnecting shell...", "シェル再接続中..."));
-        tab.session.connectWithCommand(host, port, username, password, privateKey, passphrase, buildTmuxAttachCommand(tab));
+        connectShellTab(tab);
+    }
+
+    private DetachedShell findDetachedShell(String tmuxSessionName) {
+        for (DetachedShell shell : detachedShells) {
+            if (shell != null && TextUtils.equals(shell.tmuxSessionName, tmuxSessionName)) {
+                return shell;
+            }
+        }
+        return null;
     }
 
     private void loadLocalDirectory() {
@@ -1414,9 +1617,11 @@ public final class FilerActivity extends Activity {
     }
 
     private void refreshRemoteDirectory() {
+        ListScrollState scrollState = captureRemoteScrollState();
         executor.execute(() -> {
             ChannelSftp channel = sftp;
             if (channel == null || !channel.isConnected()) {
+                runOnUiThread(this::handleSftpConnectionLost);
                 return;
             }
             try {
@@ -1428,6 +1633,7 @@ public final class FilerActivity extends Activity {
                     remoteRows.addAll(rows);
                     remotePathView.setText(remoteDirectory);
                     remoteAdapter.notifyDataSetChanged();
+                    restoreRemoteScrollState(scrollState);
                 });
             } catch (SftpException e) {
                 runOnUiThread(() -> {
@@ -1436,6 +1642,23 @@ public final class FilerActivity extends Activity {
                 });
             }
         });
+    }
+
+    private ListScrollState captureRemoteScrollState() {
+        if (remoteListView == null) {
+            return null;
+        }
+        int position = remoteListView.getFirstVisiblePosition();
+        View firstChild = remoteListView.getChildAt(0);
+        int top = firstChild == null ? 0 : firstChild.getTop();
+        return new ListScrollState(position, top);
+    }
+
+    private void restoreRemoteScrollState(ListScrollState state) {
+        if (state == null || remoteListView == null) {
+            return;
+        }
+        remoteListView.post(() -> remoteListView.setSelectionFromTop(state.position, state.top));
     }
 
     private List<FileRow> loadRemoteRows(ChannelSftp channel, String directory) throws SftpException {
@@ -1602,6 +1825,7 @@ public final class FilerActivity extends Activity {
                 runOnUiThread(() -> {
                     statusView.setText(R.string.status_disconnected);
                     Toast.makeText(this, text("Not connected to the server.", "サーバーに接続していません。"), Toast.LENGTH_SHORT).show();
+                    handleSftpConnectionLost();
                 });
                 return;
             }
@@ -1625,6 +1849,7 @@ public final class FilerActivity extends Activity {
                 runOnUiThread(() -> {
                     statusView.setText(R.string.status_disconnected);
                     Toast.makeText(this, text("Not connected to the server.", "サーバーに接続していません。"), Toast.LENGTH_SHORT).show();
+                    handleSftpConnectionLost();
                 });
                 return;
             }
@@ -1656,6 +1881,7 @@ public final class FilerActivity extends Activity {
         executor.execute(() -> {
             ChannelSftp channel = sftp;
             if (channel == null || !channel.isConnected()) {
+                runOnUiThread(this::handleSftpConnectionLost);
                 return;
             }
             editRemoteFileOnExecutor(channel, row);
@@ -2011,6 +2237,7 @@ public final class FilerActivity extends Activity {
         executor.execute(() -> {
             ChannelSftp channel = sftp;
             if (channel == null || !channel.isConnected()) {
+                runOnUiThread(this::handleSftpConnectionLost);
                 return;
             }
             if (localTreeUri == null || TextUtils.isEmpty(localDirectoryDocumentId)) {
@@ -2143,7 +2370,10 @@ public final class FilerActivity extends Activity {
         executor.execute(() -> {
             ChannelSftp channel = sftp;
             if (channel == null || !channel.isConnected()) {
-                runOnUiThread(() -> Toast.makeText(this, text("Not connected to the server.", "サーバーに接続していません。"), Toast.LENGTH_SHORT).show());
+                runOnUiThread(() -> {
+                    Toast.makeText(this, text("Not connected to the server.", "サーバーに接続していません。"), Toast.LENGTH_SHORT).show();
+                    handleSftpConnectionLost();
+                });
                 return;
             }
             try {
@@ -2335,6 +2565,7 @@ public final class FilerActivity extends Activity {
     private void showCreateRemoteMenu() {
         if (!connected || sftp == null || !sftp.isConnected()) {
             Toast.makeText(this, text("Not connected to the server.", "サーバーに接続していません。"), Toast.LENGTH_SHORT).show();
+            handleSftpConnectionLost();
             return;
         }
         String[] actions = new String[]{getString(R.string.action_file), getString(R.string.action_directory)};
@@ -2365,7 +2596,10 @@ public final class FilerActivity extends Activity {
         executor.execute(() -> {
             ChannelSftp channel = sftp;
             if (channel == null || !channel.isConnected()) {
-                runOnUiThread(() -> Toast.makeText(this, text("Not connected to the server.", "サーバーに接続していません。"), Toast.LENGTH_SHORT).show());
+                runOnUiThread(() -> {
+                    Toast.makeText(this, text("Not connected to the server.", "サーバーに接続していません。"), Toast.LENGTH_SHORT).show();
+                    handleSftpConnectionLost();
+                });
                 return;
             }
             String targetPath = joinRemotePath(remoteDirectory, name);
@@ -2403,6 +2637,7 @@ public final class FilerActivity extends Activity {
         executor.execute(() -> {
             ChannelSftp channel = sftp;
             if (channel == null || !channel.isConnected()) {
+                runOnUiThread(this::handleSftpConnectionLost);
                 return;
             }
             try {
@@ -2462,7 +2697,50 @@ public final class FilerActivity extends Activity {
         ShellTab tab = createShellTab(command);
         showShellTab(tab);
         setStatus(text("Connecting shell...", "シェル接続中..."));
+        connectShellTab(tab);
+    }
+
+    private void connectShellTab(ShellTab tab) {
+        if (tab == null || tab.closed || tab.detached) {
+            return;
+        }
         tab.session.connectWithCommand(host, port, username, password, privateKey, passphrase, buildTmuxAttachCommand(tab));
+    }
+
+    private void markShellTabForForegroundReconnect(ShellTab tab) {
+        if (tab == null || tab.closed || tab.detached) {
+            return;
+        }
+        tab.reconnectWhenForeground = true;
+        if (activeShellTab == tab) {
+            setShellKeyButtonsEnabled(false);
+            updateShellKeyButtonStates();
+        }
+        if (foreground) {
+            reconnectShellTabsAfterForeground();
+        }
+    }
+
+    private void reconnectShellTabsAfterForeground() {
+        List<ShellTab> tabs = new ArrayList<>(shellTabs);
+        for (ShellTab tab : tabs) {
+            if (!tab.reconnectWhenForeground || tab.closed || tab.detached || tab.connected) {
+                continue;
+            }
+            tab.reconnectWhenForeground = false;
+            if (tab.reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+                if (activeShellTab == tab) {
+                    setShellKeyButtonsEnabled(false);
+                    updateShellKeyButtonStates();
+                }
+                continue;
+            }
+            tab.reconnectAttempts++;
+            if (activeShellTab == tab) {
+                statusView.setText(getString(R.string.status_reconnecting_attempt, tab.reconnectAttempts, MAX_RECONNECT_ATTEMPTS));
+            }
+            connectShellTab(tab);
+        }
     }
 
     private String buildShellCommand(String command) {
@@ -2780,6 +3058,16 @@ public final class FilerActivity extends Activity {
         return Math.round(value * getResources().getDisplayMetrics().density);
     }
 
+    private static final class ListScrollState {
+        private final int position;
+        private final int top;
+
+        private ListScrollState(int position, int top) {
+            this.position = position;
+            this.top = top;
+        }
+    }
+
     private static final class ShellTab {
         private int id;
         private String tmuxSessionName;
@@ -2794,6 +3082,8 @@ public final class FilerActivity extends Activity {
         private boolean imeEnabled;
         private boolean detached;
         private boolean closed;
+        private boolean reconnectWhenForeground;
+        private int reconnectAttempts;
         private String pendingCommand;
     }
 

@@ -17,6 +17,7 @@
     <string name="status_connecting">接続中...</string>
     <string name="status_connected">接続中</string>
     <string name="status_disconnected">未接続</string>
+    <string name="status_reconnecting_attempt">再接続中... %1$d/%2$d</string>
     <string name="terminal_label">端末出力</string>
     <string name="terminal_screen_title">sshclientjr terminal</string>
     <string name="input_help">日本語IMEの確定を邪魔しないため、Enterではなく「送信」でUTF-8送信します。</string>

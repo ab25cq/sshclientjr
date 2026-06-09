@@ -28,6 +28,28 @@ public final class TerminalActivity extends Activity {
     private static final String EXTRA_PASSPHRASE = "passphrase";
     private static final long KEY_REPEAT_INITIAL_DELAY_MS = 350L;
     private static final long KEY_REPEAT_INTERVAL_MS = 80L;
+    private static final int MAX_RECONNECT_ATTEMPTS = 5;
+    private static final String ATTACH_USER_MULTIPLEXER_COMMAND =
+            "export LANG=ja_JP.UTF-8 2>/dev/null || export LANG=C.UTF-8 2>/dev/null; "
+                    + "export LC_CTYPE=\"$LANG\"; "
+                    + "stty iutf8 2>/dev/null; "
+                    + "if command -v tmux >/dev/null 2>&1; then "
+                    + "tmux start-server 2>/dev/null; "
+                    + "tmux set-option -g mouse on 2>/dev/null; "
+                    + "tmux_target=$(tmux list-sessions -F '#{session_last_attached} #{session_name}' 2>/dev/null "
+                    + "| sort -nr "
+                    + "| while IFS=' ' read -r _ name; do case \"$name\" in sshclientjr_*) ;; '') ;; *) printf '%s\\n' \"$name\"; break;; esac; done); "
+                    + "if [ -n \"$tmux_target\" ]; then exec tmux -u attach-session -t \"$tmux_target\"; fi; "
+                    + "fi; "
+                    + "if command -v screen >/dev/null 2>&1; then "
+                    + "screen_target=$(screen -ls 2>/dev/null "
+                    + "| sed -n 's/^[[:space:]]*[0-9][0-9]*\\.\\([^[:space:]]*\\).*/\\1/p' "
+                    + "| while IFS= read -r name; do case \"$name\" in sshclientjr_*) ;; '') ;; *) printf '%s\\n' \"$name\"; break;; esac; done); "
+                    + "if [ -n \"$screen_target\" ]; then exec screen -U -xRR \"$screen_target\"; fi; "
+                    + "fi; "
+                    + "if [ -n \"$SHELL\" ]; then exec \"$SHELL\" -l; "
+                    + "elif command -v bash >/dev/null 2>&1; then exec bash -l; "
+                    + "else exec sh -i; fi";
 
     private TextView statusView;
     private TextView sessionView;
@@ -37,7 +59,6 @@ public final class TerminalActivity extends Activity {
     private Button pasteButton;
     private Button ctrlButton;
     private Button altButton;
-    private Button ctrlDButton;
     private Button pageUpButton;
     private Button leftButton;
     private Button downButton;
@@ -50,7 +71,18 @@ public final class TerminalActivity extends Activity {
 
     private SshTerminalSession sshSession;
     private String baseSessionLabel = "";
+    private String host;
+    private int port;
+    private String username;
+    private String password;
+    private String privateKey;
+    private String passphrase;
     private boolean terminalConnected;
+    private boolean foreground;
+    private boolean manualDisconnect;
+    private boolean reconnectWhenForeground;
+    private boolean connectedWhenPaused;
+    private int reconnectAttempts;
     private boolean ctrlLocked;
     private boolean altLocked;
     private boolean imeEnabled;
@@ -89,6 +121,9 @@ public final class TerminalActivity extends Activity {
             @Override
             public void onConnected() {
                 runOnUiThread(() -> {
+                    reconnectAttempts = 0;
+                    reconnectWhenForeground = false;
+                    manualDisconnect = false;
                     setConnectionState(true);
                     terminalView.requestFocus();
                     terminalView.onScreenUpdated();
@@ -114,17 +149,25 @@ public final class TerminalActivity extends Activity {
 
             @Override
             public void onConnectionError(String message) {
+                boolean lostWhileForeground = foreground;
                 runOnUiThread(() -> {
-                    Toast.makeText(TerminalActivity.this, message, Toast.LENGTH_SHORT).show();
                     setConnectionState(false);
+                    handleTerminalConnectionLost(lostWhileForeground);
+                    if (lostWhileForeground) {
+                        Toast.makeText(TerminalActivity.this, message, Toast.LENGTH_SHORT).show();
+                    }
                 });
             }
 
             @Override
             public void onDisconnected(String message) {
+                boolean lostWhileForeground = foreground;
                 runOnUiThread(() -> {
-                    Toast.makeText(TerminalActivity.this, message, Toast.LENGTH_SHORT).show();
                     setConnectionState(false);
+                    handleTerminalConnectionLost(lostWhileForeground);
+                    if (lostWhileForeground) {
+                        Toast.makeText(TerminalActivity.this, message, Toast.LENGTH_SHORT).show();
+                    }
                 });
             }
 
@@ -160,9 +203,23 @@ public final class TerminalActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        foreground = true;
         if (terminalConnected) {
             showTerminalKeyboard();
+        } else if (reconnectWhenForeground) {
+            reconnectTerminalAfterForeground();
+        } else if (connectedWhenPaused) {
+            reconnectWhenForeground = true;
+            reconnectTerminalAfterForeground();
         }
+        connectedWhenPaused = false;
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        connectedWhenPaused = terminalConnected;
+        foreground = false;
     }
 
     @Override
@@ -176,6 +233,7 @@ public final class TerminalActivity extends Activity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        manualDisconnect = true;
         stopRepeatingKey();
         sshSession.release();
     }
@@ -189,7 +247,6 @@ public final class TerminalActivity extends Activity {
         pasteButton = findViewById(R.id.pasteButton);
         ctrlButton = findViewById(R.id.ctrlButton);
         altButton = findViewById(R.id.altButton);
-        ctrlDButton = findViewById(R.id.ctrlDButton);
         pageUpButton = findViewById(R.id.pageUpButton);
         leftButton = findViewById(R.id.leftButton);
         downButton = findViewById(R.id.downButton);
@@ -214,7 +271,6 @@ public final class TerminalActivity extends Activity {
         pasteButton.setOnClickListener(view -> pasteClipboard());
         ctrlButton.setOnClickListener(view -> toggleCtrlModifier());
         altButton.setOnClickListener(view -> toggleAltModifier());
-        ctrlDButton.setOnClickListener(view -> sshSession.sendCtrlD());
         pageUpButton.setOnClickListener(view -> sendKey(KeyEvent.KEYCODE_PAGE_UP));
         setRepeatingKeyListener(leftButton, KeyEvent.KEYCODE_DPAD_LEFT);
         setRepeatingKeyListener(downButton, KeyEvent.KEYCODE_DPAD_DOWN);
@@ -223,19 +279,22 @@ public final class TerminalActivity extends Activity {
         pageDownButton.setOnClickListener(view -> sendKey(KeyEvent.KEYCODE_PAGE_DOWN));
         escButton.setOnClickListener(view -> sshSession.sendEscape());
         tabButton.setOnClickListener(view -> sshSession.sendTab());
-        disconnectButton.setOnClickListener(view -> sshSession.disconnect());
+        disconnectButton.setOnClickListener(view -> {
+            manualDisconnect = true;
+            sshSession.disconnect();
+        });
         updateButtonStates();
         setConnectionState(false);
     }
 
     private void connectFromIntent() {
         Intent intent = getIntent();
-        String host = intent.getStringExtra(EXTRA_HOST);
-        int port = intent.getIntExtra(EXTRA_PORT, 22);
-        String username = intent.getStringExtra(EXTRA_USERNAME);
-        String password = intent.getStringExtra(EXTRA_PASSWORD);
-        String privateKey = intent.getStringExtra(EXTRA_PRIVATE_KEY);
-        String passphrase = intent.getStringExtra(EXTRA_PASSPHRASE);
+        host = intent.getStringExtra(EXTRA_HOST);
+        port = intent.getIntExtra(EXTRA_PORT, 22);
+        username = intent.getStringExtra(EXTRA_USERNAME);
+        password = intent.getStringExtra(EXTRA_PASSWORD);
+        privateKey = intent.getStringExtra(EXTRA_PRIVATE_KEY);
+        passphrase = intent.getStringExtra(EXTRA_PASSPHRASE);
 
         if (TextUtils.isEmpty(host) || TextUtils.isEmpty(username) ||
                 (TextUtils.isEmpty(password) && TextUtils.isEmpty(privateKey))) {
@@ -247,7 +306,41 @@ public final class TerminalActivity extends Activity {
         baseSessionLabel = username + "@" + host + ":" + port;
         sessionView.setText(baseSessionLabel);
         statusView.setText(R.string.status_connecting);
-        sshSession.connect(host, port, username, password, privateKey, passphrase);
+        connectTerminal();
+    }
+
+    private void connectTerminal() {
+        sshSession.connectWithCommand(host, port, username, password, privateKey, passphrase, ATTACH_USER_MULTIPLEXER_COMMAND);
+    }
+
+    private void handleTerminalConnectionLost(boolean lostWhileForeground) {
+        if (manualDisconnect) {
+            return;
+        }
+        if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+            reconnectWhenForeground = true;
+            if (lostWhileForeground && foreground) {
+                reconnectTerminalAfterForeground();
+            }
+        }
+    }
+
+    private void reconnectTerminalAfterForeground() {
+        if (manualDisconnect || terminalConnected) {
+            return;
+        }
+        if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+            reconnectWhenForeground = false;
+            return;
+        }
+        if (!foreground || !reconnectWhenForeground) {
+            reconnectWhenForeground = true;
+            return;
+        }
+        reconnectAttempts++;
+        reconnectWhenForeground = false;
+        statusView.setText(getString(R.string.status_reconnecting_attempt, reconnectAttempts, MAX_RECONNECT_ATTEMPTS));
+        connectTerminal();
     }
 
     private void setConnectionState(boolean connected) {
@@ -258,7 +351,6 @@ public final class TerminalActivity extends Activity {
         pasteButton.setEnabled(connected);
         ctrlButton.setEnabled(connected);
         altButton.setEnabled(connected);
-        ctrlDButton.setEnabled(connected);
         pageUpButton.setEnabled(connected);
         leftButton.setEnabled(connected);
         downButton.setEnabled(connected);

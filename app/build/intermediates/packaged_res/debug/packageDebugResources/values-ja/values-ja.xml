@@ -67,6 +67,7 @@
     <string name="status_connecting">接続中...</string>
     <string name="status_disconnected">未接続</string>
     <string name="status_label">接続状態</string>
+    <string name="status_reconnecting_attempt">再接続中... %1$d/%2$d</string>
     <string name="terminal_label">端末出力</string>
     <string name="terminal_screen_title">sshclientjr terminal</string>
     <string name="toast_connection_failed">接続に失敗しました: %1$s</string>

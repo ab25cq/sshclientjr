@@ -16,10 +16,6 @@
         "source": "/home/ab25cq/.gradle/daemon/8.7/com.sshclientjr.app-main-6:/drawable/bg_screen.xml"
     },
     {
-        "merged": "com.sshclientjr.app-release-5:/layout_activity_terminal.xml.flat",
-        "source": "com.sshclientjr.app-main-6:/layout/activity_terminal.xml"
-    },
-    {
         "merged": "/home/ab25cq/.gradle/daemon/8.7/com.sshclientjr.app-release-5:/drawable_field_surface.xml.flat",
         "source": "/home/ab25cq/.gradle/daemon/8.7/com.sshclientjr.app-main-6:/drawable/field_surface.xml"
     },
@@ -50,10 +46,6 @@
     {
         "merged": "/home/ab25cq/.gradle/daemon/8.7/com.sshclientjr.app-release-5:/layout_activity_terminal.xml.flat",
         "source": "/home/ab25cq/.gradle/daemon/8.7/com.sshclientjr.app-main-6:/layout/activity_terminal.xml"
-    },
-    {
-        "merged": "com.sshclientjr.app-release-5:/layout_activity_file_editor.xml.flat",
-        "source": "com.sshclientjr.app-main-6:/layout/activity_file_editor.xml"
     },
     {
         "merged": "/home/ab25cq/.gradle/daemon/8.7/com.sshclientjr.app-release-5:/drawable_terminal_surface.xml.flat",

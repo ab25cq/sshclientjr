@@ -17,6 +17,7 @@
     <string name="status_connecting">Connecting...</string>
     <string name="status_connected">Connected</string>
     <string name="status_disconnected">Disconnected</string>
+    <string name="status_reconnecting_attempt">Reconnecting... %1$d/%2$d</string>
     <string name="terminal_label">Terminal output</string>
     <string name="terminal_screen_title">sshclientjr terminal</string>
     <string name="input_help">Use Send instead of Enter so IME composition is not interrupted.</string>

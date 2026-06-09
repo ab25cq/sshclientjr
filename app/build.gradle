@@ -13,8 +13,8 @@ android {
         applicationId "com.sshclientjr"
         minSdk 24
         targetSdk 35
-        versionCode 63
-        versionName "63"
+        versionCode 68
+        versionName "68"
     }
 
     signingConfigs {

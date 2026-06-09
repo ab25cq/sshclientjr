@@ -27,11 +27,10 @@ drawable terminal_surface
 id altButton
 id backButton
 id clearUserDataButton
-id closeButton
 id connectButton
+id connectionBackButton
 id copyButton
 id ctrlButton
-id ctrlDButton
 id disconnectButton
 id downButton
 id editorAltButton
@@ -60,8 +59,8 @@ id filerShellAltButton
 id filerShellAttachButton
 id filerShellCopyButton
 id filerShellCtrlButton
-id filerShellCtrlDButton
 id filerShellDetachButton
+id filerShellDisconnectButton
 id filerShellDownButton
 id filerShellEscButton
 id filerShellKeyBar
@@ -102,8 +101,6 @@ id passwordInput
 id pasteButton
 id portInput
 id privateKeyInput
-id reconnectButton
-id refreshButton
 id remoteCommandInput
 id remoteList
 id remoteNewFileButton
@@ -198,6 +195,7 @@ string status_connected
 string status_connecting
 string status_disconnected
 string status_label
+string status_reconnecting_attempt
 string terminal_label
 string terminal_screen_title
 string toast_connection_failed

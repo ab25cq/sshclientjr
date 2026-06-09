@@ -8,6 +8,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 
 final class SshSessionFactory {
+    private static final int CONNECT_TIMEOUT_MS = 15_000;
+    private static final int SOCKET_TIMEOUT_MS = 60_000;
+    private static final int SERVER_ALIVE_INTERVAL_MS = 10_000;
+    private static final int SERVER_ALIVE_COUNT_MAX = 8;
+
     private SshSessionFactory() {
     }
 
@@ -39,9 +44,10 @@ final class SshSessionFactory {
             config.put("PubkeyAuthentication", "no");
         }
         session.setConfig(config);
-        session.setServerAliveInterval(15_000);
-        session.setTimeout(10_000);
-        session.connect(10_000);
+        session.setServerAliveInterval(SERVER_ALIVE_INTERVAL_MS);
+        session.setServerAliveCountMax(SERVER_ALIVE_COUNT_MAX);
+        session.setTimeout(SOCKET_TIMEOUT_MS);
+        session.connect(CONNECT_TIMEOUT_MS);
         return session;
     }
 }
